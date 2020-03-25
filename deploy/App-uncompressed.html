@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>PlanningGame</title>
+
+    <script type="text/javascript" src="/apps/2.1/sdk.js"></script>
+
+    <script type="text/javascript">
+        Rally.onReady(function () {
+                /* eslint-disable no-undef */
+/* eslint-disable func-names */
+/* eslint-disable object-shorthand */
+Ext.define('Niks.Apps.CustomApp', {
+    extend: 'Rally.app.App',
+    componentCls: 'app',
+    launch: function () {
+        // Write app code here
+
+        // API Docs: https://help.rallydev.com/apps/2.1/doc/
+    }
+});
+
+
+            Rally.launchApp('Niks.Apps.CustomApp', {
+                name:"PlanningGame",
+                parentRepos:"",
+                version:"0.1.1"
+            });
+
+        });
+    </script>
+
+
+</head>
+<body>
+</body>
+</html>

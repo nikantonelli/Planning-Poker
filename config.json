@@ -1,0 +1,14 @@
+{
+    "name": "PlanningGame",
+    "className": "Niks.Apps.PlanningGame",
+    "server": "https://rally1.rallydev.com",
+    "sdk": "2.1",
+    "javascript": [
+        "App.js"
+    ],
+    "jsx": [
+    ],
+    "css": [
+        "app.css"
+    ]
+}
