@@ -1,3 +1,9 @@
-.app {
-     /* Add app styles here */
+.panel {
+     border: '1px black';
+}
+
+.textfield {
+    border-style: none none solid none;
+    border-color: black;
+    border-width: 1px;
 }

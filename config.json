@@ -5,6 +5,8 @@
     "sdk": "2.1",
     "javascript": [
         "App.js",
+        "Events.js",
+        "Panel.js",
         "GameConfig.js",
         "UserConfig.js"
     ],

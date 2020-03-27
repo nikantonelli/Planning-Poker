@@ -21,7 +21,74 @@ Ext.define('Niks.Apps.PlanningGame', {
         SAVE_FAIL_RETRIES: 5
     },
 
+    listeners: {
+        moderatorchanged: function(evt) {
+            debugger;
+            this._saveProjectConfig().then({
+            success: function() {
+                /** Config saved and restart from scratch */
+                this._reloadGame();
+            },
+            failure: function(e) {
+                console.log("Failed to save project config",e);
+            },
+            scope: this
+        });
+        }
+    },
+
+    _reloadGame: function() {
+        /** Clear out existing data and settings 
+         * We will need to refetch the config from the project 
+         * */
+        me._kickOff();
+    },
+
     _kickOff: function() {
+        var me = this;
+        /** When we come here, everything should be in place to start a new game
+         * Now fetch the User Stories - with the option of only those not sized yet
+         */
+        this._getCurrentIteration().then({
+            success: function(iteration) {
+                var filters = [];
+
+                if (me._gameConfig.includeSizedStories()) {
+                    filters.push({
+                        property: 'PlanEstimate',
+                        operator: '>',
+                        value: 0
+                    });
+                }
+
+                me._storyStore = Ext.create('Rally.data.wsapi.Store', {
+                    model: 'HierarchicalRequirement',
+                    filters: filters,
+                    context: {
+                        projectScopeUp: false,
+                        projectScopeDown: false
+                    },
+                    autoLoad: true,
+                    listeners: {
+                        load: function(store, records, success) {
+                            if (success) {
+                                Rally.ui.notify.Notifier.show({message: Ext.String.format("Loaded {0} stories", records.length)});
+                                me._gameConfig.showPanel();
+                            }else {
+                                Rally.ui.notify.Notifier.showWarning({message: "No stories found in this project node"});
+                            }
+                        }
+                    }
+                });
+            },
+            failure: function(e) {
+                console.log("Didn't find a 'current' iteration", e);
+            }
+        });
+
+    },
+
+    _loadGameConfig: function() {
         var me = this;
 
         /** We need to load up the project specific config now.
@@ -34,9 +101,11 @@ Ext.define('Niks.Apps.PlanningGame', {
                 callback: function( members, operation, success) {
                     //Add all the team members to the GameConfig
                     if (success === true) {
+                        Rally.ui.notify.Notifier.show({ message: "Team members loaded"});
                         _.each(members, function(member) {
                             me._gameConfig.addUser(member);
                         });
+                        me._kickOff();
                     }
                     else {
                         console.log("Team members field unavailable");
@@ -53,7 +122,10 @@ Ext.define('Niks.Apps.PlanningGame', {
 
     launch: function () {
         var me = this;
-        me._gameConfig = Ext.create('Niks.Apps.PokerGameConfig');
+        me._gameConfig = Ext.create('Niks.Apps.PokerGameConfig', {
+            app: me
+        });
+
         //Check for required fields in this project node
 
         //Create config page and then pull config from project node if exists. If not, create.
@@ -67,7 +139,20 @@ Ext.define('Niks.Apps.PlanningGame', {
             success: function(result) {
                 this._getProjectConfig(result).then({
                     success: function(projConfig) {
-                        if (projConfig.length === 0) {
+                        var previousConfig = {};
+                        if (projConfig.length && ((previousConfig = JSON.parse(projConfig)).moderator !== undefined)){
+                            // Ready to go
+                            //get the moderator from the saved config ID and give it to the gameConfig to fetch the full user
+                            me._gameConfig.setModeratorFromId(previousConfig.moderator). then ({
+                                success: function() {
+                                    me._loadGameConfig();
+                                },
+                                failure: function() {
+                                    console.log('Failed to set moderator from ID');
+                                }
+                            });
+                        }
+                        else {
                             //Set up new config
                             Ext.create('Rally.ui.dialog.ConfirmDialog', {
                                 title: "New Config",
@@ -75,11 +160,11 @@ Ext.define('Niks.Apps.PlanningGame', {
                                 listeners: {
                                     confirm: function() {
                                         //Set user up as moderator
-                                        me._gameConfig.mergeConfig( { moderator: me.getContext().getUser().ObjectID});
+                                        me._gameConfig.setModerator( me.getContext().getUser());
                                         me._saveProjectConfig().then({
                                             success: function() {
                                                 /** Config saved and we are ready to go */
-                                                me._kickOff();
+                                                me._loadGameConfig();
                                             },
                                             failure: function(e) {
                                                 console.log("Failed to save project config",e);
@@ -89,11 +174,6 @@ Ext.define('Niks.Apps.PlanningGame', {
                                     }
                                 }
                             });
-                        }
-                        else {
-                            // Ready to go
-                            me._gameConfig.mergeConfig(JSON.parse(projConfig));
-                            me._kickOff();
                         }
                     },
                     failure: function(e) {
@@ -201,7 +281,7 @@ Ext.define('Niks.Apps.PlanningGame', {
     _saveProjectConfig: function(existingDefer) {
         var me = this;
         var deferred = (existingDefer === undefined) ? Ext.create("Deft.Deferred") : existingDefer;
-        var currentConfig = JSON.stringify(this._gameConfig);
+        var currentConfig = JSON.stringify(this._gameConfig.getGameConfig());
         var record = this.projectStore.getRecords()[0];
         record.set(this.configFieldName, this._encodeMsg("MainConfig", currentConfig));
         record.save({
@@ -264,5 +344,38 @@ Ext.define('Niks.Apps.PlanningGame', {
 
     _decodeMsg: function(msgType, msgText) {
         return window.atob(msgText.split(",").pop());
-    }
+    },
+
+    _getCurrentIteration: function() {
+
+        /** In this project, find the iteration that is ongoing */
+        var deferred = Ext.create("Deft.Deferred");
+
+        this._iterationStore = Ext.create('Rally.data.wsapi.Store', {
+            model: 'Iteration',
+            autoLoad: true,
+            context: {
+                projectScopeUp: false,
+                projectScopeDown: false
+            },
+            filters: [
+                {
+                    property: "StartDate",
+                    operator: "<",
+                    value: new Date()
+                },
+                {
+                    property: 'EndDate',
+                    operator: ">",
+                    value: new Date()
+                }
+            ],
+            listeners: {
+                load: function(store, records, success) {
+                    deferred.resolve(records[0])
+                }
+            }
+        });
+        return deferred.promise;
+    },
 });
