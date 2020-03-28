@@ -10,11 +10,11 @@ Ext.define('Niks.Apps.PlanningGame', {
     componentCls: 'app',
 
     //Only save the least amount of data in here. We only have 32768 chars to play with
-    _gameConfig: {},
+    _GC: {},
 
     config: {
         configFieldName: "c_PlanningPokerConfig",
-        planningPokerTitle: '^'
+        configSplitter: '^'
     },
 
     statics: {
@@ -23,7 +23,6 @@ Ext.define('Niks.Apps.PlanningGame', {
 
     listeners: {
         moderatorchanged: function(evt) {
-            debugger;
             this._saveProjectConfig().then({
             success: function() {
                 /** Config saved and restart from scratch */
@@ -41,7 +40,7 @@ Ext.define('Niks.Apps.PlanningGame', {
         /** Clear out existing data and settings 
          * We will need to refetch the config from the project 
          * */
-        me._kickOff();
+        this._kickOff();
     },
 
     _kickOff: function() {
@@ -53,7 +52,7 @@ Ext.define('Niks.Apps.PlanningGame', {
             success: function(iteration) {
                 var filters = [];
 
-                if (me._gameConfig.includeSizedStories()) {
+                if (me._GC.includeSizedStories()) {
                     filters.push({
                         property: 'PlanEstimate',
                         operator: '>',
@@ -73,7 +72,7 @@ Ext.define('Niks.Apps.PlanningGame', {
                         load: function(store, records, success) {
                             if (success) {
                                 Rally.ui.notify.Notifier.show({message: Ext.String.format("Loaded {0} stories", records.length)});
-                                me._gameConfig.showPanel();
+                                me._GC.showPanel();
                             }else {
                                 Rally.ui.notify.Notifier.showWarning({message: "No stories found in this project node"});
                             }
@@ -103,7 +102,7 @@ Ext.define('Niks.Apps.PlanningGame', {
                     if (success === true) {
                         Rally.ui.notify.Notifier.show({ message: "Team members loaded"});
                         _.each(members, function(member) {
-                            me._gameConfig.addUser(member);
+                            me._UC.addUser(member);
                         });
                         me._kickOff();
                     }
@@ -122,8 +121,14 @@ Ext.define('Niks.Apps.PlanningGame', {
 
     launch: function () {
         var me = this;
-        me._gameConfig = Ext.create('Niks.Apps.PokerGameConfig', {
-            app: me
+        me._GC = Ext.create('Niks.Apps.PokerGameConfig', {
+            app: me,
+            project: me.getContext().getProject()
+        });
+
+        me._UC = Ext.create('Niks.Apps.PokerUserConfig', {
+            app: me,
+            project: me.getContext().getProject()
         });
 
         //Check for required fields in this project node
@@ -140,10 +145,11 @@ Ext.define('Niks.Apps.PlanningGame', {
                 this._getProjectConfig(result).then({
                     success: function(projConfig) {
                         var previousConfig = {};
+                        debugger;
                         if (projConfig.length && ((previousConfig = JSON.parse(projConfig)).moderator !== undefined)){
                             // Ready to go
                             //get the moderator from the saved config ID and give it to the gameConfig to fetch the full user
-                            me._gameConfig.setModeratorFromId(previousConfig.moderator). then ({
+                            me._GC.setModeratorFromId(previousConfig.moderator). then ({
                                 success: function() {
                                     me._loadGameConfig();
                                 },
@@ -160,7 +166,7 @@ Ext.define('Niks.Apps.PlanningGame', {
                                 listeners: {
                                     confirm: function() {
                                         //Set user up as moderator
-                                        me._gameConfig.setModerator( me.getContext().getUser());
+                                        me._GC.setModerator( me.getContext().getUser());
                                         me._saveProjectConfig().then({
                                             success: function() {
                                                 /** Config saved and we are ready to go */
@@ -265,7 +271,8 @@ Ext.define('Niks.Apps.PlanningGame', {
             fetch: true,
             listeners: {
                 load: function(store, records) {
-                    var currentConfig = this._decodeMsg("MainConfig", records[0].get(this.configFieldName));
+                    me._GC.initialiseConfig(records[0].get(this.configFieldName));
+                    var currentConfig = me._GC.getNamedConfig(mainConfigName);
                     deferred.resolve(currentConfig);
                 },
                 scope: me
@@ -281,9 +288,9 @@ Ext.define('Niks.Apps.PlanningGame', {
     _saveProjectConfig: function(existingDefer) {
         var me = this;
         var deferred = (existingDefer === undefined) ? Ext.create("Deft.Deferred") : existingDefer;
-        var currentConfig = JSON.stringify(this._gameConfig.getGameConfig());
+        var currentConfig = JSON.stringify(this._GC.getGameConfig());
         var record = this.projectStore.getRecords()[0];
-        record.set(this.configFieldName, this._encodeMsg("MainConfig", currentConfig));
+        record.set(this.configFieldName, currentConfig);
         record.save({
             success: function() {
                 this._failedSave = 0;
@@ -332,20 +339,6 @@ Ext.define('Niks.Apps.PlanningGame', {
         return deferred.promise;
     },
 
-    /** Utility functions
-     * 
-     * At some point we will need to add the ability to store multiple entries in the game config, search for the right one
-     * to create/read/update/delete
-     */
-
-    _encodeMsg: function(msgType, msgText) {
-        return this.planningPokerTitle + msgType + "," + window.btoa(msgText);
-    },
-
-    _decodeMsg: function(msgType, msgText) {
-        return window.atob(msgText.split(",").pop());
-    },
-
     _getCurrentIteration: function() {
 
         /** In this project, find the iteration that is ongoing */
@@ -372,7 +365,7 @@ Ext.define('Niks.Apps.PlanningGame', {
             ],
             listeners: {
                 load: function(store, records, success) {
-                    deferred.resolve(records[0])
+                    deferred.resolve(records[0]);
                 }
             }
         });

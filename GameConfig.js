@@ -1,35 +1,65 @@
 
 Ext.define('Niks.Apps.PokerGameConfig', {
     extend: Niks.Apps.Panel,
-    mixins: {
-        observable:  Ext.util.Observable 
+
+    /** Each interation might have different config
+    iterationConfig: {}, 
+    */
+   /**
+    mainConfig: {
+        activeStory: null,
+        moderatorID: null,
+        onlyUnsized: false,
     },
+     */
+    /** 
+    userConfig: {}, //Contains 'active' as well as other layout info for this game 
+     */
 
-    iterationConfigs: [], /** Each interation might have different config */
-    activeStory: null,
-    moderator: null,
-    userConfigs: [], /** Contains 'active' as well as other layout info */
-    onlyUnsized: false,
-
+    userIDs: [],            /** Only contains the reference to the user only so that we can get info from UserConfig */
+    moderatorUser: null,    /** Full object for the moderator */
+    
     statics: {
         userIdField: "ObjectID"
     },
 
-    bubbleEvents: [
-        modChange
-    ],
+    /** We know of three config types right now: MainConfig, IterationConfig, UserConfig */
+    initialiseConfig: function(fieldText) {
+        this[mainConfigName] = this._decodeConfig(mainConfigName, fieldText);
+        this[userConfigName] = this._decodeConfig(userConfigName, fieldText);
+        this[iterConfigName] = this._decodeConfig(iterConfigName, fieldText);
+    },
+
+    getNamedConfig: function(name) {
+        return this[name] || {};
+    },
+
+    _decodeConfig: function(requiredType, fieldText) {
+
+        if ((fieldText === undefined) || ( fieldText.length === 0)) {
+            return '';
+        }
+        var msgs = fieldText.split(this.configSplitter);
+        var configs = {};
+        _.each(msgs, function(msg) {
+            var splitMsg = msg.split(',');
+            if (splitMsg[0].length) {
+                configs[splitMsg[0]] = splitMsg[1];
+            }
+        });
+        return configs[requiredType] || {};
+    },
 
     addUser: function(user) {   //Passed in a user record
-        if ( _.find( this.userConfigs, {userOID: user.get(this.self.userIdField)})) {
+        if ( _.find( this.userIDs, {userOID: user.get(this.self.userIdField)})) {
             console.log("Adding existing member - ignoring!");
         } else {
-            this.userConfigs.push(user);
+            this.userIDs.push(user[this.self.userIdField]);
         }
     },
 
     setModerator: function(user) {
-
-        this.moderator = user[this.self.userIdField];
+        this[mainConfigName].moderatorID = user[this.self.userIdField];
         this.moderatorUser = user;
     },
 
@@ -48,11 +78,11 @@ Ext.define('Niks.Apps.PokerGameConfig', {
             listeners: {
                 load: function(store, records, success) {
                     if (success) {
-                        me.setModerator(records[0]);
-                        deferred.resolve(records[0]);
+                        me.setModerator(records[0].data);
+                        deferred.resolve(records[0].data);
                     }
                     else {
-                        deferred.reject()
+                        deferred.reject();
                     }
                 }
             }
@@ -60,22 +90,23 @@ Ext.define('Niks.Apps.PokerGameConfig', {
         return deferred.promise;
     },
 
-    // mergeConfig: function(newConfig) {
-    //     Ext.merge(this, newConfig);
-    // },
-
     includeSizedStories: function() {
-        return !this.onlyUnsized
+        return !this.onlyUnsized;
     },
 
+    _encodeMsg: function(msgType, msgText) {
+        return this.configSplitter + msgType + "," + window.btoa(msgText);
+    },
+
+    _decodeMsg: function(msgType, msgText) {
+        return window.atob(msgText.split(",").pop());
+    },
+
+    /* Gameconfig is the thing that is stored to the Project field. Must not be more than 32768 chars */
     getGameConfig: function() {
-        return {
-            iterationConfigs: this.iterationConfigs,
-            activeStory: this.activeStory,
-            moderator: this.moderator,
-            userConfigs: this.userConfigs,
-            onlyUnsized: this.onlyUnsized
-        };
+        return  this._encodeMsg(mainConfigName, JSON.stringify(this.mainConfig)) +
+                this._encodeMsg(userConfigName, JSON.stringify(this.userConfig))+
+                this._encodeMsg(iterConfigName, JSON.stringify(this.iterationConfig));
     },
 
     _createPanel: function() {
@@ -85,7 +116,6 @@ Ext.define('Niks.Apps.PokerGameConfig', {
             width: 400,
             height: 400,
             baseCls: 'panel',
-//            autoShow: true
             hidden: true
         });
         panel.add( {
@@ -96,7 +126,7 @@ Ext.define('Niks.Apps.PokerGameConfig', {
             margin: '10 0 10 20',
             baseBodyCls: 'textfield',
             readOnly: true,
-            value: me.moderatorUser? me.moderatorUser.get('DisplayName'): 'Not Set'
+            value: me.moderatorUser? me.moderatorUser['DisplayName']: 'Not Set'
 
         });
         panel.add( {
@@ -111,7 +141,7 @@ Ext.define('Niks.Apps.PokerGameConfig', {
                 //Setvalue fires when the thing is first set up with a null value.
                 setvalue: function(entry) {
                     if (entry.value !== null) {
-                        me.setModerator(entry.lastSelection[0])
+                        me.setModerator(entry.lastSelection[0]);
                         panel.down('#curMod').setValue(me.moderatorUser.get('DisplayName'));
                         Ext.create('Rally.ui.dialog.ConfirmDialog', {
                                 title: "New Moderator",
@@ -119,7 +149,6 @@ Ext.define('Niks.Apps.PokerGameConfig', {
                                 listeners: {
                                     confirm: function() {
                                         //Set user up as moderator
-                                        debugger;
                                         me.app.fireEvent(modChange);
                                         me.hidePanel();
                                     }

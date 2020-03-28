@@ -19,11 +19,11 @@ Ext.define('Niks.Apps.PlanningGame', {
     componentCls: 'app',
 
     //Only save the least amount of data in here. We only have 32768 chars to play with
-    _gameConfig: {},
+    _GC: {},
 
     config: {
         configFieldName: "c_PlanningPokerConfig",
-        planningPokerTitle: '^'
+        configSplitter: '^'
     },
 
     statics: {
@@ -32,7 +32,6 @@ Ext.define('Niks.Apps.PlanningGame', {
 
     listeners: {
         moderatorchanged: function(evt) {
-            debugger;
             this._saveProjectConfig().then({
             success: function() {
                 /** Config saved and restart from scratch */
@@ -50,7 +49,7 @@ Ext.define('Niks.Apps.PlanningGame', {
         /** Clear out existing data and settings 
          * We will need to refetch the config from the project 
          * */
-        me._kickOff();
+        this._kickOff();
     },
 
     _kickOff: function() {
@@ -62,7 +61,7 @@ Ext.define('Niks.Apps.PlanningGame', {
             success: function(iteration) {
                 var filters = [];
 
-                if (me._gameConfig.includeSizedStories()) {
+                if (me._GC.includeSizedStories()) {
                     filters.push({
                         property: 'PlanEstimate',
                         operator: '>',
@@ -82,7 +81,7 @@ Ext.define('Niks.Apps.PlanningGame', {
                         load: function(store, records, success) {
                             if (success) {
                                 Rally.ui.notify.Notifier.show({message: Ext.String.format("Loaded {0} stories", records.length)});
-                                me._gameConfig.showPanel();
+                                me._GC.showPanel();
                             }else {
                                 Rally.ui.notify.Notifier.showWarning({message: "No stories found in this project node"});
                             }
@@ -112,7 +111,7 @@ Ext.define('Niks.Apps.PlanningGame', {
                     if (success === true) {
                         Rally.ui.notify.Notifier.show({ message: "Team members loaded"});
                         _.each(members, function(member) {
-                            me._gameConfig.addUser(member);
+                            me._UC.addUser(member);
                         });
                         me._kickOff();
                     }
@@ -131,8 +130,14 @@ Ext.define('Niks.Apps.PlanningGame', {
 
     launch: function () {
         var me = this;
-        me._gameConfig = Ext.create('Niks.Apps.PokerGameConfig', {
-            app: me
+        me._GC = Ext.create('Niks.Apps.PokerGameConfig', {
+            app: me,
+            project: me.getContext().getProject()
+        });
+
+        me._UC = Ext.create('Niks.Apps.PokerUserConfig', {
+            app: me,
+            project: me.getContext().getProject()
         });
 
         //Check for required fields in this project node
@@ -149,10 +154,11 @@ Ext.define('Niks.Apps.PlanningGame', {
                 this._getProjectConfig(result).then({
                     success: function(projConfig) {
                         var previousConfig = {};
+                        debugger;
                         if (projConfig.length && ((previousConfig = JSON.parse(projConfig)).moderator !== undefined)){
                             // Ready to go
                             //get the moderator from the saved config ID and give it to the gameConfig to fetch the full user
-                            me._gameConfig.setModeratorFromId(previousConfig.moderator). then ({
+                            me._GC.setModeratorFromId(previousConfig.moderator). then ({
                                 success: function() {
                                     me._loadGameConfig();
                                 },
@@ -169,7 +175,7 @@ Ext.define('Niks.Apps.PlanningGame', {
                                 listeners: {
                                     confirm: function() {
                                         //Set user up as moderator
-                                        me._gameConfig.setModerator( me.getContext().getUser());
+                                        me._GC.setModerator( me.getContext().getUser());
                                         me._saveProjectConfig().then({
                                             success: function() {
                                                 /** Config saved and we are ready to go */
@@ -274,7 +280,8 @@ Ext.define('Niks.Apps.PlanningGame', {
             fetch: true,
             listeners: {
                 load: function(store, records) {
-                    var currentConfig = this._decodeMsg("MainConfig", records[0].get(this.configFieldName));
+                    me._GC.initialiseConfig(records[0].get(this.configFieldName));
+                    var currentConfig = me._GC.getNamedConfig(mainConfigName);
                     deferred.resolve(currentConfig);
                 },
                 scope: me
@@ -290,9 +297,9 @@ Ext.define('Niks.Apps.PlanningGame', {
     _saveProjectConfig: function(existingDefer) {
         var me = this;
         var deferred = (existingDefer === undefined) ? Ext.create("Deft.Deferred") : existingDefer;
-        var currentConfig = JSON.stringify(this._gameConfig.getGameConfig());
+        var currentConfig = JSON.stringify(this._GC.getGameConfig());
         var record = this.projectStore.getRecords()[0];
-        record.set(this.configFieldName, this._encodeMsg("MainConfig", currentConfig));
+        record.set(this.configFieldName, currentConfig);
         record.save({
             success: function() {
                 this._failedSave = 0;
@@ -341,20 +348,6 @@ Ext.define('Niks.Apps.PlanningGame', {
         return deferred.promise;
     },
 
-    /** Utility functions
-     * 
-     * At some point we will need to add the ability to store multiple entries in the game config, search for the right one
-     * to create/read/update/delete
-     */
-
-    _encodeMsg: function(msgType, msgText) {
-        return this.planningPokerTitle + msgType + "," + window.btoa(msgText);
-    },
-
-    _decodeMsg: function(msgType, msgText) {
-        return window.atob(msgText.split(",").pop());
-    },
-
     _getCurrentIteration: function() {
 
         /** In this project, find the iteration that is ongoing */
@@ -381,7 +374,7 @@ Ext.define('Niks.Apps.PlanningGame', {
             ],
             listeners: {
                 load: function(store, records, success) {
-                    deferred.resolve(records[0])
+                    deferred.resolve(records[0]);
                 }
             }
         });
@@ -389,7 +382,13 @@ Ext.define('Niks.Apps.PlanningGame', {
     },
 });
 
-                const modChange = 'moderatorchanged';
+                /** Event Passing */
+const modChange = 'moderatorchanged';
+
+/** Configuration naming  */
+const mainConfigName = 'MainConfig';
+const userConfigName = 'UserConfig';
+const iterConfigName = 'IterConfig';
                 Ext.define('Niks.Apps.Panel', {
 
     bubbleEvents: [],
@@ -398,12 +397,6 @@ Ext.define('Niks.Apps.PlanningGame', {
         //this.callParent(arguments);
         Ext.applyIf(this, config);
     },
-
-    // initEvents: function() {
-    //     this.callParent(arguments);
-    //     this.addEvents( bubbleEvents )
-    //     this.enableBubble( bubbleEvents );
-    // },
 
     getPanel: function() {
         if (this.configPanel === undefined) {
@@ -425,35 +418,65 @@ Ext.define('Niks.Apps.PlanningGame', {
                 
 Ext.define('Niks.Apps.PokerGameConfig', {
     extend: Niks.Apps.Panel,
-    mixins: {
-        observable:  Ext.util.Observable 
+
+    /** Each interation might have different config
+    iterationConfig: {}, 
+    */
+   /**
+    mainConfig: {
+        activeStory: null,
+        moderatorID: null,
+        onlyUnsized: false,
     },
+     */
+    /** 
+    userConfig: {}, //Contains 'active' as well as other layout info for this game 
+     */
 
-    iterationConfigs: [], /** Each interation might have different config */
-    activeStory: null,
-    moderator: null,
-    userConfigs: [], /** Contains 'active' as well as other layout info */
-    onlyUnsized: false,
-
+    userIDs: [],            /** Only contains the reference to the user only so that we can get info from UserConfig */
+    moderatorUser: null,    /** Full object for the moderator */
+    
     statics: {
         userIdField: "ObjectID"
     },
 
-    bubbleEvents: [
-        modChange
-    ],
+    /** We know of three config types right now: MainConfig, IterationConfig, UserConfig */
+    initialiseConfig: function(fieldText) {
+        this[mainConfigName] = this._decodeConfig(mainConfigName, fieldText);
+        this[userConfigName] = this._decodeConfig(userConfigName, fieldText);
+        this[iterConfigName] = this._decodeConfig(iterConfigName, fieldText);
+    },
+
+    getNamedConfig: function(name) {
+        return this[name] || {};
+    },
+
+    _decodeConfig: function(requiredType, fieldText) {
+
+        if ((fieldText === undefined) || ( fieldText.length === 0)) {
+            return '';
+        }
+        var msgs = fieldText.split(this.configSplitter);
+        var configs = {};
+        _.each(msgs, function(msg) {
+            var splitMsg = msg.split(',');
+            if (splitMsg[0].length) {
+                configs[splitMsg[0]] = splitMsg[1];
+            }
+        });
+        return configs[requiredType] || {};
+    },
 
     addUser: function(user) {   //Passed in a user record
-        if ( _.find( this.userConfigs, {userOID: user.get(this.self.userIdField)})) {
+        if ( _.find( this.userIDs, {userOID: user.get(this.self.userIdField)})) {
             console.log("Adding existing member - ignoring!");
         } else {
-            this.userConfigs.push(user);
+            this.userIDs.push(user[this.self.userIdField]);
         }
     },
 
     setModerator: function(user) {
-
-        this.moderator = user[this.self.userIdField];
+        this[mainConfigName].moderatorID = user[this.self.userIdField];
         this.moderatorUser = user;
     },
 
@@ -472,11 +495,11 @@ Ext.define('Niks.Apps.PokerGameConfig', {
             listeners: {
                 load: function(store, records, success) {
                     if (success) {
-                        me.setModerator(records[0]);
-                        deferred.resolve(records[0]);
+                        me.setModerator(records[0].data);
+                        deferred.resolve(records[0].data);
                     }
                     else {
-                        deferred.reject()
+                        deferred.reject();
                     }
                 }
             }
@@ -484,22 +507,23 @@ Ext.define('Niks.Apps.PokerGameConfig', {
         return deferred.promise;
     },
 
-    // mergeConfig: function(newConfig) {
-    //     Ext.merge(this, newConfig);
-    // },
-
     includeSizedStories: function() {
-        return !this.onlyUnsized
+        return !this.onlyUnsized;
     },
 
+    _encodeMsg: function(msgType, msgText) {
+        return this.configSplitter + msgType + "," + window.btoa(msgText);
+    },
+
+    _decodeMsg: function(msgType, msgText) {
+        return window.atob(msgText.split(",").pop());
+    },
+
+    /* Gameconfig is the thing that is stored to the Project field. Must not be more than 32768 chars */
     getGameConfig: function() {
-        return {
-            iterationConfigs: this.iterationConfigs,
-            activeStory: this.activeStory,
-            moderator: this.moderator,
-            userConfigs: this.userConfigs,
-            onlyUnsized: this.onlyUnsized
-        };
+        return  this._encodeMsg(mainConfigName, JSON.stringify(this.mainConfig)) +
+                this._encodeMsg(userConfigName, JSON.stringify(this.userConfig))+
+                this._encodeMsg(iterConfigName, JSON.stringify(this.iterationConfig));
     },
 
     _createPanel: function() {
@@ -509,7 +533,6 @@ Ext.define('Niks.Apps.PokerGameConfig', {
             width: 400,
             height: 400,
             baseCls: 'panel',
-//            autoShow: true
             hidden: true
         });
         panel.add( {
@@ -520,7 +543,7 @@ Ext.define('Niks.Apps.PokerGameConfig', {
             margin: '10 0 10 20',
             baseBodyCls: 'textfield',
             readOnly: true,
-            value: me.moderatorUser? me.moderatorUser.get('DisplayName'): 'Not Set'
+            value: me.moderatorUser? me.moderatorUser['DisplayName']: 'Not Set'
 
         });
         panel.add( {
@@ -535,7 +558,7 @@ Ext.define('Niks.Apps.PokerGameConfig', {
                 //Setvalue fires when the thing is first set up with a null value.
                 setvalue: function(entry) {
                     if (entry.value !== null) {
-                        me.setModerator(entry.lastSelection[0])
+                        me.setModerator(entry.lastSelection[0]);
                         panel.down('#curMod').setValue(me.moderatorUser.get('DisplayName'));
                         Ext.create('Rally.ui.dialog.ConfirmDialog', {
                                 title: "New Moderator",
@@ -543,7 +566,6 @@ Ext.define('Niks.Apps.PokerGameConfig', {
                                 listeners: {
                                     confirm: function() {
                                         //Set user up as moderator
-                                        debugger;
                                         me.app.fireEvent(modChange);
                                         me.hidePanel();
                                     }
@@ -559,13 +581,26 @@ Ext.define('Niks.Apps.PokerGameConfig', {
         return panel;
     },
 });
-                Ext.define('Niks.Apps.PokerUserConfig', {
-    userOID: null,
+                /** Something to hold the current config of the user during this session
+ * 
+ */
 
-    constructor: function(userRecord) {
-        this.callParent();
-        this.userOID = userRecord.get("ObjectID");
+Ext.define('Niks.Apps.PokerUserConfig', {
+    extend: Niks.Apps.Panel,
+    users: [],
+
+    /* This is called from something that has got a Store record not just a model */
+    addUser: function(userRecord) {
+        /** Check if the user is in the array. If not, then add */
+        if (!_.find(this.users, function(user) {
+            if (userRecord.get('ObjectID') === user.get('ObjectID')) {
+                return true;
+            }
+        })){
+            this.users.push(userRecord);
+        }
     }
+
 });
 
             Rally.launchApp('Niks.Apps.PlanningGame', {

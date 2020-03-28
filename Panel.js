@@ -7,12 +7,6 @@ Ext.define('Niks.Apps.Panel', {
         Ext.applyIf(this, config);
     },
 
-    // initEvents: function() {
-    //     this.callParent(arguments);
-    //     this.addEvents( bubbleEvents )
-    //     this.enableBubble( bubbleEvents );
-    // },
-
     getPanel: function() {
         if (this.configPanel === undefined) {
             this._createPanel();
