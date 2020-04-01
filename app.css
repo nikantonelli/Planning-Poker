@@ -1,5 +1,17 @@
-.panel {
-     border: '1px black';
+.userpanel {
+     border-top: 1px solid black;
+     border-left: none;
+     border-right: none;
+     border-bottom: none;
+     background-color: palegoldenrod;
+}
+
+.clearpanel {
+    border: none;
+}
+.configPanel {
+    opacity: 1;
+    background-color: palegoldenrod;
 }
 
 .textfield {

@@ -7,11 +7,8 @@ Ext.define('Niks.Apps.Panel', {
         Ext.applyIf(this, config);
     },
 
-    getPanel: function() {
-        if (this.configPanel === undefined) {
-            this._createPanel();
-        }
-        return this.configPanel;
+    getPanel: function(param) {
+        return this.configPanel || this._createPanel(param);
     },
 
     showPanel: function() {
