@@ -6,6 +6,7 @@ Ext.define('Niks.PokerCard', {
     extend: Ext.panel.Panel,
     margin: cardMargin,
     layout: 'vbox',
+    autoScroll: true,
 
     constructor: function(config) {
         Ext.apply(this.config);
@@ -20,6 +21,20 @@ Ext.define('Niks.PokerCard', {
                 text:  "Current Size: " + ls 
             }
         );
+        this.add(
+            {
+                xtype: 'label',
+                margin: cardMargin,
+                grow: true,
+                labelAlign: 'top',
+                readOnly: true,
+                autoScroll: true,
+                html: this.card.get('Description')
+            }
+        )
+        this.on('click', function() {
+            debugger;
+        })
     },
 
     config: {},
@@ -66,7 +81,7 @@ Ext.define('Niks.Apps.PokerUserConfig', {
 
     restart: function() {
         this.stories = [];
-        this.down('#cardspace').removeAll();
+        this.getPanel().down('#cardspace').removeAll();
     },
 
     //Stories can come as the form of the records in a store or the valueSeries

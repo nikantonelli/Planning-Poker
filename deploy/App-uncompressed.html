@@ -31,6 +31,10 @@ Ext.define('Niks.Apps.PlanningGame', {
     },
 
     listeners: {
+        configsave: function() {
+            this._saveProjectConfig();
+        },
+        
         configchanged: function() {
             //GC itself updates directly from panel, so no need to fetch here
             this._GC.updateNamedConfig(iterConfigName, this._IC.getConfig());
@@ -97,7 +101,7 @@ Ext.define('Niks.Apps.PlanningGame', {
             success: function(iteration) {
                 var filters = [{
                     property: 'Iteration',
-                    value: iteration.get('_ref')
+                    value: iteration
                 }];
 
                 if (me._GC.onlyUnSizedStories()) {
@@ -125,6 +129,7 @@ Ext.define('Niks.Apps.PlanningGame', {
                         projectScopeDown: false
                     },
                     autoLoad: true,
+                    fetch: true,
                     listeners: {
                         load: function(store, records, success) {
                             if (success) {
@@ -333,6 +338,8 @@ Ext.define('Niks.Apps.PlanningGame', {
             listeners: {
                 load: function(store, records) {
                     me._GC.initialiseConfig(records[0].get(this.configFieldName));
+                    me._UC.setConfig(me._GC.getNamedConfig(userConfigName));
+                    me._IC.setConfig(me._GC.getNamedConfig(iterConfigName));
                     var currentConfig = me._GC.getNamedConfig(mainConfigName);
                     deferred.resolve(currentConfig);
                 },
@@ -413,8 +420,8 @@ const iterConfigName = 'IterConfig';
 
 /* Display card  */
 
-const cardWidth = 200;
-const cardHeight = 400;
+const cardWidth = 400;
+const cardHeight = 200;
 const cardMargin = 10;
 const cardSizeField = 'PlanEstimate';
 const cardIdField = 'FormattedID';
@@ -423,6 +430,11 @@ const cardIdField = 'FormattedID';
 
 const configSplitter1 = '^';
 const configSplitter2 = '|';
+
+/* Game numbers */
+
+const votingTime = 10;
+
                 Ext.define('Niks.Apps.Panel', {
 
     bubbleEvents: [],
@@ -468,7 +480,8 @@ Ext.define('Niks.Apps.PokerGameConfig', {
     moderatorUser: null,    /** Full object for the moderator */
     
     statics: {
-        userIdField: "ObjectID"
+        userIdField: "ObjectID",
+        votingTime: '10'
     },
 
     /** We know of three config types right now: MainConfig, IterationConfig, UserConfig */
@@ -641,6 +654,23 @@ Ext.define('Niks.Apps.PokerGameConfig', {
             }
         });
 
+        panel.add( {
+            xtype: 'textfield',
+            baseCls: 'timerText',
+            fieldLabel: 'Voting Time (min:sec)',
+            labelWidth: 200,
+            margin: '10 0 10 20',
+            value: Ext.Date.format(Ext.Date.parse( this[mainConfigName].votingTime , "s"), "i:s") || Ext.Date.format(Ext.Date.parse( votingTime, "s"), "i:s"),
+            validator: function(value) {
+                if (Ext.Date.parse(value, "i:s") !== undefined) {
+                    me.app.fireEvent('configsave');   //Save but don't change this game
+                    return true;
+                }
+                return false;
+            }
+            
+        });
+
         this.configPanel = panel;
         return panel;
     },
@@ -653,6 +683,7 @@ Ext.define('Niks.PokerCard', {
     extend: Ext.panel.Panel,
     margin: cardMargin,
     layout: 'vbox',
+    autoScroll: true,
 
     constructor: function(config) {
         Ext.apply(this.config);
@@ -667,6 +698,20 @@ Ext.define('Niks.PokerCard', {
                 text:  "Current Size: " + ls 
             }
         );
+        this.add(
+            {
+                xtype: 'label',
+                margin: cardMargin,
+                grow: true,
+                labelAlign: 'top',
+                readOnly: true,
+                autoScroll: true,
+                html: this.card.get('Description')
+            }
+        )
+        this.on('click', function() {
+            debugger;
+        })
     },
 
     config: {},
@@ -713,7 +758,7 @@ Ext.define('Niks.Apps.PokerUserConfig', {
 
     restart: function() {
         this.stories = [];
-        this.down('#cardspace').removeAll();
+        this.getPanel().down('#cardspace').removeAll();
     },
 
     //Stories can come as the form of the records in a store or the valueSeries
@@ -841,15 +886,18 @@ Ext.define('Niks.Apps.PokerUserConfig', {
                 Ext.define('Niks.Apps.PokerIterationConfig', {
     extend: Niks.Apps.Panel,
     
-    iterConfigName: {
-        currentIteration: null
+    constructor: function() {
+        this.callParent(arguments);
+        this[iterConfigName] = {
+            currentIteration: null
+        };
     },
 
     getConfig: function() {
         return this[iterConfigName];
     },
     setConfig: function(config) {
-        this[iterConfigName] = config;
+        Ext.merge(this[iterConfigName], config);
     },
     
     _createPanel: function() {
@@ -868,15 +916,14 @@ Ext.define('Niks.Apps.PokerUserConfig', {
 
         me.getCurrentIteration().then( {
             success: function(iteration) {
-                debugger;
                 panel.add( {
                     xtype: 'rallyiterationcombobox',
                     margin: 40,
                     store: me.iterationStore,
-                    value: iteration.get('_ref'),
+                    value: iteration,
                     listeners: {
-                        select: function(store,iteration) {
-                            me[iterConfigName].currentIteration = iteration;
+                        select: function(store,record) {
+                            me[iterConfigName].currentIteration = record.get('_ref');
                             me.app.fireEvent('configChanged');
                         }
                     }
@@ -894,12 +941,12 @@ Ext.define('Niks.Apps.PokerUserConfig', {
     },
 
     getCurrentIteration: function() {
-        if (this.currentIteration === null) {
+        if (this[iterConfigName].currentIteration === null) {
             return this._getIterations();
         }
         else {
             var deferred = Ext.create("Deft.Deferred");
-            deferred.resolve( this.currentIteration);   /* Resolve straightaway as we already have it. */
+            deferred.resolve( this[iterConfigName].currentIteration);   /* Resolve straightaway as we already have it. */
             return deferred.promise;
         }
     },
@@ -935,7 +982,7 @@ Ext.define('Niks.Apps.PokerUserConfig', {
                 load: function(store, records, success) {
                     if (success) {
                         me.iterationStore = store;
-                        me[iterConfigName].currentIteration = records[0];
+                        me[iterConfigName].currentIteration = records[0].get('_ref');
                         deferred.resolve(me[iterConfigName].currentIteration);
                     }
                     else {
@@ -980,6 +1027,10 @@ Ext.define('Niks.Apps.PokerUserConfig', {
   border-style: none none solid none;
   border-color: black;
   border-width: 1px;
+}
+.timerText {
+  font-size: 18;
+  font: 1em sans-serif;
 }
 
     </style>

@@ -19,3 +19,8 @@
     border-color: black;
     border-width: 1px;
 }
+
+.timerText {
+    font-size: 18;
+    font: 1em sans-serif;
+}

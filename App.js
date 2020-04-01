@@ -22,6 +22,10 @@ Ext.define('Niks.Apps.PlanningGame', {
     },
 
     listeners: {
+        configsave: function() {
+            this._saveProjectConfig();
+        },
+        
         configchanged: function() {
             //GC itself updates directly from panel, so no need to fetch here
             this._GC.updateNamedConfig(iterConfigName, this._IC.getConfig());
@@ -88,7 +92,7 @@ Ext.define('Niks.Apps.PlanningGame', {
             success: function(iteration) {
                 var filters = [{
                     property: 'Iteration',
-                    value: iteration.get('_ref')
+                    value: iteration
                 }];
 
                 if (me._GC.onlyUnSizedStories()) {
@@ -116,6 +120,7 @@ Ext.define('Niks.Apps.PlanningGame', {
                         projectScopeDown: false
                     },
                     autoLoad: true,
+                    fetch: true,
                     listeners: {
                         load: function(store, records, success) {
                             if (success) {
@@ -324,6 +329,8 @@ Ext.define('Niks.Apps.PlanningGame', {
             listeners: {
                 load: function(store, records) {
                     me._GC.initialiseConfig(records[0].get(this.configFieldName));
+                    me._UC.setConfig(me._GC.getNamedConfig(userConfigName));
+                    me._IC.setConfig(me._GC.getNamedConfig(iterConfigName));
                     var currentConfig = me._GC.getNamedConfig(mainConfigName);
                     deferred.resolve(currentConfig);
                 },

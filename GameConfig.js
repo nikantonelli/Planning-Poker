@@ -20,7 +20,8 @@ Ext.define('Niks.Apps.PokerGameConfig', {
     moderatorUser: null,    /** Full object for the moderator */
     
     statics: {
-        userIdField: "ObjectID"
+        userIdField: "ObjectID",
+        votingTime: '10'
     },
 
     /** We know of three config types right now: MainConfig, IterationConfig, UserConfig */
@@ -191,6 +192,23 @@ Ext.define('Niks.Apps.PokerGameConfig', {
                     me.app.fireEvent(configChange);
                 }
             }
+        });
+
+        panel.add( {
+            xtype: 'textfield',
+            baseCls: 'timerText',
+            fieldLabel: 'Voting Time (min:sec)',
+            labelWidth: 200,
+            margin: '10 0 10 20',
+            value: Ext.Date.format(Ext.Date.parse( this[mainConfigName].votingTime , "s"), "i:s") || Ext.Date.format(Ext.Date.parse( votingTime, "s"), "i:s"),
+            validator: function(value) {
+                if (Ext.Date.parse(value, "i:s") !== undefined) {
+                    me.app.fireEvent('configsave');   //Save but don't change this game
+                    return true;
+                }
+                return false;
+            }
+            
         });
 
         this.configPanel = panel;

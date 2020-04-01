@@ -1,15 +1,18 @@
 Ext.define('Niks.Apps.PokerIterationConfig', {
     extend: Niks.Apps.Panel,
     
-    iterConfigName: {
-        currentIteration: null
+    constructor: function() {
+        this.callParent(arguments);
+        this[iterConfigName] = {
+            currentIteration: null
+        };
     },
 
     getConfig: function() {
         return this[iterConfigName];
     },
     setConfig: function(config) {
-        this[iterConfigName] = config;
+        Ext.merge(this[iterConfigName], config);
     },
     
     _createPanel: function() {
@@ -28,15 +31,14 @@ Ext.define('Niks.Apps.PokerIterationConfig', {
 
         me.getCurrentIteration().then( {
             success: function(iteration) {
-                debugger;
                 panel.add( {
                     xtype: 'rallyiterationcombobox',
                     margin: 40,
                     store: me.iterationStore,
-                    value: iteration.get('_ref'),
+                    value: iteration,
                     listeners: {
-                        select: function(store,iteration) {
-                            me[iterConfigName].currentIteration = iteration;
+                        select: function(store,record) {
+                            me[iterConfigName].currentIteration = record.get('_ref');
                             me.app.fireEvent('configChanged');
                         }
                     }
@@ -54,12 +56,12 @@ Ext.define('Niks.Apps.PokerIterationConfig', {
     },
 
     getCurrentIteration: function() {
-        if (this.currentIteration === null) {
+        if (this[iterConfigName].currentIteration === null) {
             return this._getIterations();
         }
         else {
             var deferred = Ext.create("Deft.Deferred");
-            deferred.resolve( this.currentIteration);   /* Resolve straightaway as we already have it. */
+            deferred.resolve( this[iterConfigName].currentIteration);   /* Resolve straightaway as we already have it. */
             return deferred.promise;
         }
     },
@@ -95,7 +97,7 @@ Ext.define('Niks.Apps.PokerIterationConfig', {
                 load: function(store, records, success) {
                     if (success) {
                         me.iterationStore = store;
-                        me[iterConfigName].currentIteration = records[0];
+                        me[iterConfigName].currentIteration = records[0].get('_ref');
                         deferred.resolve(me[iterConfigName].currentIteration);
                     }
                     else {

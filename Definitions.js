@@ -9,8 +9,8 @@ const iterConfigName = 'IterConfig';
 
 /* Display card  */
 
-const cardWidth = 200;
-const cardHeight = 400;
+const cardWidth = 400;
+const cardHeight = 200;
 const cardMargin = 10;
 const cardSizeField = 'PlanEstimate';
 const cardIdField = 'FormattedID';
@@ -19,3 +19,7 @@ const cardIdField = 'FormattedID';
 
 const configSplitter1 = '^';
 const configSplitter2 = '|';
+
+/* Game numbers */
+
+const votingTime = 10;
