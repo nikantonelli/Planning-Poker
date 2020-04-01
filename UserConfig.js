@@ -16,6 +16,7 @@ Ext.define('Niks.PokerCard', {
         this.add(
             {
                 xtype: 'text',
+                margin: cardMargin,
                 text:  "Current Size: " + ls 
             }
         );
@@ -32,9 +33,21 @@ Ext.define('Niks.PokerCard', {
 Ext.define('Niks.Apps.PokerUserConfig', {
     extend: Niks.Apps.Panel,
     users: [],
-    valueSeries: [0,1,2,3,5,8,13,20,50,100],
     stories: [],
 
+    userConfigName: {
+            valueSeries: [0,1,2,3,5,8,13,20,50,100],
+    },
+
+    getConfig: function() {
+        return this[userConfigName];
+    },
+
+    setConfig: function(config) {
+        this[userConfigName] = config;
+    },
+
+    
     /* This is called from something that has got a Store record not just a model */
     addUser: function(userRecord) {
         /** Check if the user is in the array. If not, then add */
@@ -65,7 +78,7 @@ Ext.define('Niks.Apps.PokerUserConfig', {
         else {
             _.each(stories, function(story) {
                 me._addCardToPage(story);
-            })
+            });
             //Add the moderators story cards
         }
     },
@@ -152,6 +165,15 @@ Ext.define('Niks.Apps.PokerUserConfig', {
                 margin: '10 10 0 10',
                 handler: function() {
                     me.app.fireEvent('showConfig');
+                }
+            });
+            page.down('#menu').add({
+                xtype: 'rallybutton',
+                width: 100,
+                text: 'Iteration',
+                margin: '10 10 0 10',
+                handler: function() {
+                    me.app.fireEvent('changeIteration');
                 }
             });
         }

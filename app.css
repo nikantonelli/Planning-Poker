@@ -1,9 +1,9 @@
 .userpanel {
-     border-top: 1px solid black;
-     border-left: none;
-     border-right: none;
+     border-left: 1px solid black;
+     border-top: none;
+     border-right:  1px solid black;
      border-bottom: none;
-     background-color: palegoldenrod;
+     background-color: whitesmoke;
 }
 
 .clearpanel {

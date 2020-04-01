@@ -34,6 +34,11 @@ Ext.define('Niks.Apps.PokerGameConfig', {
         return this[name] || {};
     },
 
+    //Send in an object 
+    updateNamedConfig: function(name, config) {
+        this[name] = config;
+    },
+
     _decodeConfig: function(requiredType, fieldText) {
 
         if ((fieldText === undefined) || ( fieldText.length === 0)) {
@@ -62,7 +67,9 @@ Ext.define('Niks.Apps.PokerGameConfig', {
         if (this.moderatorUser) {
             return this.moderatorUser;
         }
-        else return null;   //Be specific about a null.
+        else {
+            return null;   //Be specific about a null.
+        }
     },
 
     setModerator: function(user) {
@@ -181,7 +188,7 @@ Ext.define('Niks.Apps.PokerGameConfig', {
             listeners: {
                 change: function( tickbox, newV, oldV, opts) {
                     me[mainConfigName].onlyUnsized = newV;
-                    me.app.fireEvent(configChange)
+                    me.app.fireEvent(configChange);
                 }
             }
         });

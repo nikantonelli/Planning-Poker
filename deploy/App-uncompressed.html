@@ -32,6 +32,9 @@ Ext.define('Niks.Apps.PlanningGame', {
 
     listeners: {
         configchanged: function() {
+            //GC itself updates directly from panel, so no need to fetch here
+            this._GC.updateNamedConfig(iterConfigName, this._IC.getConfig());
+            this._GC.updateNamedConfig(userConfigName, this._UC.getConfig());
             this._saveProjectConfig().then({
                 success: function() {
                     /** Config saved and restart from scratch */
@@ -55,7 +58,12 @@ Ext.define('Niks.Apps.PlanningGame', {
             if (this._iAmModerator()){
                 this._GC.showPanel();
             }
-        }
+        },
+        changeIteration: function() {
+            if (this._iAmModerator()){
+                this._IC.showPanel();
+            }
+        },
     },
 
     _reloadGame: function() {
@@ -84,7 +92,8 @@ Ext.define('Niks.Apps.PlanningGame', {
         /** When we come here, everything should be in place to start a new game
          * Now fetch the User Stories - with the option of only those not sized yet
          */
-        this._getCurrentIteration().then({
+
+        me._IC.getCurrentIteration().then({
             success: function(iteration) {
                 var filters = [{
                     property: 'Iteration',
@@ -177,6 +186,11 @@ Ext.define('Niks.Apps.PlanningGame', {
         });
 
         me._UC = Ext.create('Niks.Apps.PokerUserConfig', {
+            app: me,
+            project: me.getContext().getProject()
+        });
+
+        me._IC = Ext.create('Niks.Apps.PokerIterationConfig', {
             app: me,
             project: me.getContext().getProject()
         });
@@ -386,50 +400,6 @@ Ext.define('Niks.Apps.PlanningGame', {
         var deferred = Ext.create("Deft.Deferred");
         return deferred.promise;
     },
-
-    _getCurrentIteration: function() {
-
-        /** In this project, find the iteration that is ongoing */
-        var deferred = Ext.create("Deft.Deferred");
-
-        this._iterationStore = Ext.create('Rally.data.wsapi.Store', {
-            model: 'Iteration',
-            autoLoad: true,
-            context: {
-                projectScopeUp: false,
-                projectScopeDown: false
-            },
-            filters: [
-                {
-                    property: "StartDate",
-                    operator: "<",
-                    value: new Date()
-                },
-                // {
-                //     property: 'EndDate',
-                //     operator: ">",
-                //     value: new Date()
-                // }
-            ],
-            sorters: [
-                {
-                    property: 'StartDate',
-                    direction: 'DESC'
-                }
-            ],
-            listeners: {
-                load: function(store, records, success) {
-                    if (success) {
-                        deferred.resolve(records[0]);
-                    }
-                    else {
-                        Rally.ui.notify.Notifier.show({message: 'No appropriate Iterations available'});
-                    }
-                }
-            }
-        });
-        return deferred.promise;
-    },
 });
 
                 /** Event Passing */
@@ -512,6 +482,11 @@ Ext.define('Niks.Apps.PokerGameConfig', {
         return this[name] || {};
     },
 
+    //Send in an object 
+    updateNamedConfig: function(name, config) {
+        this[name] = config;
+    },
+
     _decodeConfig: function(requiredType, fieldText) {
 
         if ((fieldText === undefined) || ( fieldText.length === 0)) {
@@ -540,7 +515,9 @@ Ext.define('Niks.Apps.PokerGameConfig', {
         if (this.moderatorUser) {
             return this.moderatorUser;
         }
-        else return null;   //Be specific about a null.
+        else {
+            return null;   //Be specific about a null.
+        }
     },
 
     setModerator: function(user) {
@@ -659,7 +636,7 @@ Ext.define('Niks.Apps.PokerGameConfig', {
             listeners: {
                 change: function( tickbox, newV, oldV, opts) {
                     me[mainConfigName].onlyUnsized = newV;
-                    me.app.fireEvent(configChange)
+                    me.app.fireEvent(configChange);
                 }
             }
         });
@@ -686,6 +663,7 @@ Ext.define('Niks.PokerCard', {
         this.add(
             {
                 xtype: 'text',
+                margin: cardMargin,
                 text:  "Current Size: " + ls 
             }
         );
@@ -702,9 +680,21 @@ Ext.define('Niks.PokerCard', {
 Ext.define('Niks.Apps.PokerUserConfig', {
     extend: Niks.Apps.Panel,
     users: [],
-    valueSeries: [0,1,2,3,5,8,13,20,50,100],
     stories: [],
 
+    userConfigName: {
+            valueSeries: [0,1,2,3,5,8,13,20,50,100],
+    },
+
+    getConfig: function() {
+        return this[userConfigName];
+    },
+
+    setConfig: function(config) {
+        this[userConfigName] = config;
+    },
+
+    
     /* This is called from something that has got a Store record not just a model */
     addUser: function(userRecord) {
         /** Check if the user is in the array. If not, then add */
@@ -735,7 +725,7 @@ Ext.define('Niks.Apps.PokerUserConfig', {
         else {
             _.each(stories, function(story) {
                 me._addCardToPage(story);
-            })
+            });
             //Add the moderators story cards
         }
     },
@@ -824,6 +814,15 @@ Ext.define('Niks.Apps.PokerUserConfig', {
                     me.app.fireEvent('showConfig');
                 }
             });
+            page.down('#menu').add({
+                xtype: 'rallybutton',
+                width: 100,
+                text: 'Iteration',
+                margin: '10 10 0 10',
+                handler: function() {
+                    me.app.fireEvent('changeIteration');
+                }
+            });
         }
         page.down('#menu').add({
             xtype: 'rallybutton',
@@ -837,6 +836,117 @@ Ext.define('Niks.Apps.PokerUserConfig', {
 
         return page;
     }
+
+});
+                Ext.define('Niks.Apps.PokerIterationConfig', {
+    extend: Niks.Apps.Panel,
+    
+    iterConfigName: {
+        currentIteration: null
+    },
+
+    getConfig: function() {
+        return this[iterConfigName];
+    },
+    setConfig: function(config) {
+        this[iterConfigName] = config;
+    },
+    
+    _createPanel: function() {
+        var me = this;
+        var panel = Ext.create('Ext.panel.Panel', {
+//        var panel = Ext.create('Ext.container.Container', {
+            title: 'Iteration Config',
+            floating: true,
+            width: 400,
+//            height: 400,
+            baseCls: 'configPanel',
+            hidden: true,
+            closable: true,
+            closeAction: 'hide',
+        });
+
+        me.getCurrentIteration().then( {
+            success: function(iteration) {
+                debugger;
+                panel.add( {
+                    xtype: 'rallyiterationcombobox',
+                    margin: 40,
+                    store: me.iterationStore,
+                    value: iteration.get('_ref'),
+                    listeners: {
+                        select: function(store,iteration) {
+                            me[iterConfigName].currentIteration = iteration;
+                            me.app.fireEvent('configChanged');
+                        }
+                    }
+                });
+
+            }
+
+            // Don't need failure as we post error essage in _getIterations
+            // failure: function() {
+            //     Rally.ui.notify.Notifier.showWarning({message: 'Cannot fetch iterations for config panel'});
+            // }
+        });
+        me.configPanel = panel;
+        return panel;
+    },
+
+    getCurrentIteration: function() {
+        if (this.currentIteration === null) {
+            return this._getIterations();
+        }
+        else {
+            var deferred = Ext.create("Deft.Deferred");
+            deferred.resolve( this.currentIteration);   /* Resolve straightaway as we already have it. */
+            return deferred.promise;
+        }
+    },
+
+    _getIterations: function() {
+
+        var me =this;
+        /** In this project, find the iteration that is ongoing */
+        var deferred = Ext.create("Deft.Deferred");
+
+        this._iterationStore = Ext.create('Rally.data.wsapi.Store', {
+            model: Ext.identityFn('Iteration'),
+            autoLoad: true,
+            context: {
+                projectScopeUp: false,
+                projectScopeDown: false
+            },
+            fetch: ["Name", "StartDate", "EndDate", "ObjectID", "State", "PlannedVelocity"],
+            filters: [
+                {
+                    property: "EndDate",
+                    operator: ">",
+                    value: new Date()
+                }
+            ],
+            sorters: [
+                {
+                    property: 'StartDate',
+                    direction: 'ASC'
+                }
+            ],
+            listeners: {
+                load: function(store, records, success) {
+                    if (success) {
+                        me.iterationStore = store;
+                        me[iterConfigName].currentIteration = records[0];
+                        deferred.resolve(me[iterConfigName].currentIteration);
+                    }
+                    else {
+                        Rally.ui.notify.Notifier.showWarning({message: 'No appropriate Iterations available'});
+                        deferred.reject();
+                    }
+                }
+            }
+        });
+        return deferred.promise;
+    },
 
 });
 
@@ -853,11 +963,11 @@ Ext.define('Niks.Apps.PokerUserConfig', {
 
     <style type="text/css">
         .userpanel {
-  border-top: 1px solid black;
-  border-left: none;
-  border-right: none;
+  border-left: 1px solid black;
+  border-top: none;
+  border-right: 1px solid black;
   border-bottom: none;
-  background-color: palegoldenrod;
+  background-color: whitesmoke;
 }
 .clearpanel {
   border: none;

@@ -23,6 +23,9 @@ Ext.define('Niks.Apps.PlanningGame', {
 
     listeners: {
         configchanged: function() {
+            //GC itself updates directly from panel, so no need to fetch here
+            this._GC.updateNamedConfig(iterConfigName, this._IC.getConfig());
+            this._GC.updateNamedConfig(userConfigName, this._UC.getConfig());
             this._saveProjectConfig().then({
                 success: function() {
                     /** Config saved and restart from scratch */
@@ -46,7 +49,12 @@ Ext.define('Niks.Apps.PlanningGame', {
             if (this._iAmModerator()){
                 this._GC.showPanel();
             }
-        }
+        },
+        changeIteration: function() {
+            if (this._iAmModerator()){
+                this._IC.showPanel();
+            }
+        },
     },
 
     _reloadGame: function() {
@@ -75,7 +83,8 @@ Ext.define('Niks.Apps.PlanningGame', {
         /** When we come here, everything should be in place to start a new game
          * Now fetch the User Stories - with the option of only those not sized yet
          */
-        this._getCurrentIteration().then({
+
+        me._IC.getCurrentIteration().then({
             success: function(iteration) {
                 var filters = [{
                     property: 'Iteration',
@@ -168,6 +177,11 @@ Ext.define('Niks.Apps.PlanningGame', {
         });
 
         me._UC = Ext.create('Niks.Apps.PokerUserConfig', {
+            app: me,
+            project: me.getContext().getProject()
+        });
+
+        me._IC = Ext.create('Niks.Apps.PokerIterationConfig', {
             app: me,
             project: me.getContext().getProject()
         });
@@ -375,50 +389,6 @@ Ext.define('Niks.Apps.PlanningGame', {
 
     _createLeadPage: function() {
         var deferred = Ext.create("Deft.Deferred");
-        return deferred.promise;
-    },
-
-    _getCurrentIteration: function() {
-
-        /** In this project, find the iteration that is ongoing */
-        var deferred = Ext.create("Deft.Deferred");
-
-        this._iterationStore = Ext.create('Rally.data.wsapi.Store', {
-            model: 'Iteration',
-            autoLoad: true,
-            context: {
-                projectScopeUp: false,
-                projectScopeDown: false
-            },
-            filters: [
-                {
-                    property: "StartDate",
-                    operator: "<",
-                    value: new Date()
-                },
-                // {
-                //     property: 'EndDate',
-                //     operator: ">",
-                //     value: new Date()
-                // }
-            ],
-            sorters: [
-                {
-                    property: 'StartDate',
-                    direction: 'DESC'
-                }
-            ],
-            listeners: {
-                load: function(store, records, success) {
-                    if (success) {
-                        deferred.resolve(records[0]);
-                    }
-                    else {
-                        Rally.ui.notify.Notifier.show({message: 'No appropriate Iterations available'});
-                    }
-                }
-            }
-        });
         return deferred.promise;
     },
 });
