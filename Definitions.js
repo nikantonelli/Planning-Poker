@@ -10,7 +10,7 @@ const iterConfigName = 'IterConfig';
 /* Display card  */
 
 const cardWidth = 400;
-const cardHeight = 200;
+const cardHeight = 300;
 const cardMargin = 10;
 const cardSizeField = 'PlanEstimate';
 const cardIdField = 'FormattedID';

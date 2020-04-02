@@ -1,7 +1,7 @@
 
 Ext.define('Niks.Apps.PokerGameConfig', {
     extend: Niks.Apps.Panel,
-
+    id: mainConfigName+'Panel',
     /** Each interation might have different config
     iterationConfig: {}, 
     */
@@ -200,9 +200,10 @@ Ext.define('Niks.Apps.PokerGameConfig', {
             fieldLabel: 'Voting Time (min:sec)',
             labelWidth: 200,
             margin: '10 0 10 20',
-            value: Ext.Date.format(Ext.Date.parse( this[mainConfigName].votingTime , "s"), "i:s") || Ext.Date.format(Ext.Date.parse( votingTime, "s"), "i:s"),
+            value: me[mainConfigName].votingTime  || Ext.Date.format(Ext.Date.parse( votingTime, "s"), "i:s"),
             validator: function(value) {
                 if (Ext.Date.parse(value, "i:s") !== undefined) {
+                    me[mainConfigName].votingTime = value;
                     me.app.fireEvent('configsave');   //Save but don't change this game
                     return true;
                 }

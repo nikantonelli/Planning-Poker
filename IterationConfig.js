@@ -1,6 +1,6 @@
 Ext.define('Niks.Apps.PokerIterationConfig', {
     extend: Niks.Apps.Panel,
-    
+    id: iterConfigName+'Panel',
     constructor: function() {
         this.callParent(arguments);
         this[iterConfigName] = {
@@ -18,11 +18,8 @@ Ext.define('Niks.Apps.PokerIterationConfig', {
     _createPanel: function() {
         var me = this;
         var panel = Ext.create('Ext.panel.Panel', {
-//        var panel = Ext.create('Ext.container.Container', {
-            title: 'Iteration Config',
             floating: true,
             width: 400,
-//            height: 400,
             baseCls: 'configPanel',
             hidden: true,
             closable: true,
@@ -38,7 +35,11 @@ Ext.define('Niks.Apps.PokerIterationConfig', {
                     value: iteration,
                     listeners: {
                         select: function(store,record) {
-                            me[iterConfigName].currentIteration = record.get('_ref');
+                            if (Array.isArray(record)){
+                                me[iterConfigName].currentIteration = record[0].get('_ref');
+                            } else {
+                                me[iterConfigName].currentIteration = record.get('_ref');
+                            }
                             me.app.fireEvent('configChanged');
                         }
                     }

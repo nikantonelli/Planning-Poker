@@ -14,13 +14,54 @@
     background-color: palegoldenrod;
 }
 
-.textfield {
+.definedfield {
     border-style: none none solid none;
     border-color: black;
     border-width: 1px;
 }
 
-.timerText {
-    font-size: 18;
-    font: 1em sans-serif;
+.timertext {
+    font-size: 36px;
+}
+
+.timerrunning {
+    background-color: teal;
+}
+
+.timerfinished {
+    background-color: tomato;
+}
+
+.timerreset {
+    background-color: white;
+}
+
+.cardtext {
+    color: black;
+    font-size: 12px;
+}
+
+.cardSelected {
+    border: 3px rgb(0,169,224) solid;
+}
+
+.rightAlignField {
+    text-align: right;
+    width: 60%;
+    flex: auto;
+}
+
+ @keyframes textBlink {
+  50% {
+    opacity: 0.5;
+  }
+}
+@-webkit-keyframes textBlink {
+  50% {
+    opacity: 0.5;
+  }
+}
+.textBlink {
+  animation: textBlink 1s step-start 0s infinite;
+  -webkit-animation: textBlink 1s step-start 0s infinite;
 }

@@ -1,3 +1,4 @@
+var storyLoadTime = null;
 
 Ext.define('Niks.Apps.TeamPicker', {
     constructor: function() {
@@ -8,6 +9,7 @@ Ext.define('Niks.Apps.TeamPicker', {
 Ext.define('Niks.Apps.PlanningGame', {
     extend: 'Rally.app.App',
     componentCls: 'app',
+    id: 'pokerApp',
 
     //Only save the least amount of data in here. We only have 32768 chars to play with
     _GC: {},
@@ -22,14 +24,26 @@ Ext.define('Niks.Apps.PlanningGame', {
     },
 
     listeners: {
+        removeGame: function() {
+            //Remove all tagged conversation posts for stories in the project node and remove the contents of the Project custom field
+            Ext.create('Rally.ui.dialog.ConfirmDialog', {
+                title: 'Clean up from game',
+                message: "Remove all game entries in this project (including game generated posts)?",
+                confirmLabel: 'Yes, please',
+                listeners: {
+                    confirm: function() {
+                        debugger;
+                    }
+                }
+            });
+        },
+
         configsave: function() {
             this._saveProjectConfig();
         },
-        
+
         configchanged: function() {
             //GC itself updates directly from panel, so no need to fetch here
-            this._GC.updateNamedConfig(iterConfigName, this._IC.getConfig());
-            this._GC.updateNamedConfig(userConfigName, this._UC.getConfig());
             this._saveProjectConfig().then({
                 success: function() {
                     /** Config saved and restart from scratch */
@@ -42,10 +56,14 @@ Ext.define('Niks.Apps.PlanningGame', {
             });
         },
         refresh: function() {
+            var me = this;
             Rally.ui.notify.Notifier.show({message: 'Refreshing Game'});
-            this._getProjectConfig().then( {
-                success: function() {
-                    debugger;
+            /** We may not do anything with the config at this point. We can catch team member changes on restart. So, really we only need 
+             * to catch story changes
+            */
+            me._getStoryChanges().then( {
+                success: function(results) {
+                    me._processStoryChanges(results);
                 }
             });
         },
@@ -59,6 +77,36 @@ Ext.define('Niks.Apps.PlanningGame', {
                 this._IC.showPanel();
             }
         },
+        cardselected: function(story) {
+            if (this._UC.setVoting(story, this._GC.getNamedConfig(mainConfigName))){     //Configure your own panel and if not running a timer send out message to all
+//                this._GC.setVoting(story);    //Send message to other users
+            }
+        }
+    },
+
+    _processStoryChanges: function() {
+        debugger;
+    },
+
+    _getStoryChanges: function() {
+        var deferred = Ext.create('Deft.Deferred');
+        var filters = [
+            {
+                property: 'LastUpdateDate',
+                operator: '>',
+                value: storyLoadTime, 
+            }
+        ];
+
+        this._getStoryStore(filters).then({
+            success: function(store) {
+                deferred.resolve(store.getRecords());
+            },
+            failure: function(e) {
+                console.log("Failed to load story changes", e);
+            }
+        });
+        return deferred.promise;
     },
 
     _reloadGame: function() {
@@ -80,6 +128,32 @@ Ext.define('Niks.Apps.PlanningGame', {
         var page = this._UC.getPanel(iAmMod);
         this._UC.addStories(iAmMod?this._storyStore.getRecords():null);
         page.show();
+    },
+
+    _getStoryStore: function(filters) {
+        var me = this;
+        var deferred = Ext.create('Deft.Deferred');
+        Ext.create('Rally.data.wsapi.artifact.Store',{
+            models: ['UserStory', 'Defect' ],
+            context: this.getContext().getDataContext(),
+            autoLoad: true,
+            remoteSort: false,
+            fetch: ['FormattedID','TargetDate', 'Description', 'Discussion', 'LatestDiscussionAgeInMinutes','LastUpdateDate', 'Name', 'State', 'ScheduleState', 'Owner', 'PlanEstimate'],
+            filters: filters,
+            listeners: {
+                load: function(store, records, success) {
+                    if (success) {
+                        storeLoadTime = new Date();
+                        Rally.ui.notify.Notifier.show({message: Ext.String.format("Loaded {0} stories", records.length)});
+                        deferred.resolve(store);
+                    }else {
+                        Rally.ui.notify.Notifier.showWarning({message: "No stories found in this iteration/project node"});
+                    }
+                },
+                scope: me
+            }
+        });
+        return deferred.promise;
     },
 
     _kickOff: function() {
@@ -111,27 +185,14 @@ Ext.define('Niks.Apps.PlanningGame', {
                     ]));
                     filters = Rally.data.wsapi.Filter.and(filters);
                 }
-
-                me._storyStore = Ext.create('Rally.data.wsapi.Store', {
-                    model: 'HierarchicalRequirement',
-                    filters: filters,
-                    context: {
-                        projectScopeUp: false,
-                        projectScopeDown: false
+        
+                me._getStoryStore(filters).then ({
+                    success: function(store) {
+                        me._storyStore = store;
+                        me._setUpUserScreen();
                     },
-                    autoLoad: true,
-                    fetch: true,
-                    listeners: {
-                        load: function(store, records, success) {
-                            if (success) {
-                                Rally.ui.notify.Notifier.show({message: Ext.String.format("Loaded {0} stories", records.length)});
-                                me._setUpUserScreen();
-//                                me._GC.showPanel();
-                            }else {
-                                Rally.ui.notify.Notifier.showWarning({message: "No stories found in this iteration/project node"});
-                            }
-                        },
-                        scope: me
+                    failure: function(e) {
+                        console.log("Failed to load stories", e);
                     }
                 });
             },
@@ -346,6 +407,9 @@ Ext.define('Niks.Apps.PlanningGame', {
     /** Save the current config */
     _saveProjectConfig: function(existingDefer) {
         var me = this;
+        this._GC.updateNamedConfig(iterConfigName, this._IC.getConfig());
+        this._GC.updateNamedConfig(userConfigName, this._UC.getConfig());
+
         var deferred = (existingDefer === undefined) ? Ext.create("Deft.Deferred") : existingDefer;
         var currentConfig = this._GC.getGameConfig();
 
