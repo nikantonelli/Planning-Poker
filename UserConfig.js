@@ -224,6 +224,7 @@ Ext.define('Niks.Apps.PokerUserConfig', {
             } else {
                 _.each(ap.getChildItemsToDisable(), function(item) { item.disable();});
             }
+            return true;
         }
     },
 
