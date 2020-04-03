@@ -79,13 +79,48 @@ Ext.define('Niks.Apps.PlanningGame', {
         },
         cardselected: function(story) {
             if (this._UC.setVoting(story, this._GC.getNamedConfig(mainConfigName))){     //Configure your own panel and if not running a timer send out message to all
-//                this._GC.setVoting(story);    //Send message to other users
+                this._storySelected = story;    //Send message to other users when asked to post the vote
+            }
+        },
+        voteselected: function(vote) {
+            this._voteSelected = vote;
+            this._UC.setVote(vote);
+        },
+
+        postvote: function() {
+            var me = this;
+            if (this._voteSelected && this._storySelected) {
+                Rally. data.ModelFactory.getModel({
+                    type: 'ConversationPost',
+                    success: function(model) {
+                        var record = Ext.create(model, {
+                            text: '<p>'+pokerVotePosted+":"+me.voteSelected+'</p>',
+                            Artifact: me._storySelected.get('_ref'),
+                        });
+                        record.save({
+                            callback: function(result, operation) {
+                                if (operation.wasSuccessful()) {
+                                    Rally.ui.notify.Notifier.show({message: Ext.String.format('Vote Posted on {0} was {1}',
+                                        me._storySelected.get('FormattedID'),
+                                        me._voteSelected)});
+                                }
+                                else {
+                                    Rally.ui.notify.Notifier.showWarning({message: 'Failed to post vote. Please retry'});
+                                }
+                            }
+                        });
+                    }
+                });
             }
         }
     },
 
+    _voteSelected: null,
+    _storySelected: null,
+
     _processStoryChanges: function() {
-        debugger;
+        //FIXME:
+        this._startGame();
     },
 
     _getStoryChanges: function() {
@@ -126,7 +161,7 @@ Ext.define('Niks.Apps.PlanningGame', {
         //Check for whether we are the moderator
         var iAmMod = this._iAmModerator();
         var page = this._UC.getPanel(iAmMod);
-        this._UC.addStories(iAmMod?this._storyStore.getRecords():null);
+        this._UC.loadStories(this._storyStore.getRecords());
         page.show();
     },
 
@@ -252,6 +287,11 @@ Ext.define('Niks.Apps.PlanningGame', {
             project: me.getContext().getProject()
         });
 
+        this._startGame();
+    },
+
+    _startGame: function() {
+        var me = this;
         //Check for required fields in this project node
 
         //Create config page and then pull config from project node if exists. If not, create.

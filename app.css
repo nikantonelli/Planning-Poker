@@ -65,3 +65,14 @@
   animation: textBlink 1s step-start 0s infinite;
   -webkit-animation: textBlink 1s step-start 0s infinite;
 }
+
+.votingSizeClass {
+    font-size: 36px;
+    text-align: 'center';
+    color: rgb(0,169,224);
+    width: 100;
+}
+
+.buttonpushed {
+    color: rgb(120,190,224)
+}
