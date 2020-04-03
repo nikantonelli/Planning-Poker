@@ -94,7 +94,7 @@ Ext.define('Niks.Apps.PlanningGame', {
                     type: 'ConversationPost',
                     success: function(model) {
                         var record = Ext.create(model, {
-                            text: '<p>'+pokerVotePosted+":"+me.voteSelected+'</p>',
+                            Text: '<p>'+pokerVotePosted+":"+me._voteSelected+'</p>',
                             Artifact: me._storySelected.story.get('_ref'),
                         });
                         record.save({
