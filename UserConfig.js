@@ -211,15 +211,69 @@ Ext.define('Niks.Apps.PokerUserConfig', {
 
     },
 
+    _revealVotes: false,
+    _votes: null,
+
+    _doVotes: function() {
+        var me = this;
+        me._getVotes().then({
+            success: function(results) {
+                me._setVotes(results);
+            }
+        });
+    },
+
+    _setVotes: function(results) {
+        var me = this;
+        var votesPanel = this.configPanel.down('#votespanel');
+        votesPanel.removeAll();
+        _.each(me.users, function(user) {
+            var foundUserAnswer = _.find(results, function(result) {
+                return result.get('User').ObjectID === user.get('ObjectID');
+            });
+            var answer = "None";
+            var timeAt = "";
+            if (foundUserAnswer !== undefined) {
+                var answer = foundUserAnswer.get('Text');
+                answer = this._revealVotes? answer.split(pokerVotePosted+':')[1].split('<')[0]: '?';
+                timeAt = foundUserAnswer.get('_CreatedAt');
+            }
+            votesPanel.add( {
+                html: user.get('_refObjectName'),
+                width:200
+            });
+            votesPanel.add( {
+                html: answer,
+                width: 50
+            });
+            votesPanel.add( {
+                html: timeAt,
+                width: 150
+            })
+            // Put this inside loop so that we don't have to check for null
+            this.configPanel.down('#revealvotesbtn').enable();
+            
+        }, me);
+    },
+
     _getVotes: function() {
-        var deferred = Ext.xcreate('Deft.Deferred');
-        debugger;
+        var me = this;
+        me._votes = null;
+        me._revealVotes = false;
+
+        var deferred = Ext.create('Deft.Deferred');
+        if (cardSelected === null) { 
+            Rally.ui.notify.Notifier.showWarning({message: 'No story selected'});
+            deferred.resolve([]);
+            return deferred.promise;
+        }
+
         /** Get the discussion posts that are owned by the team members and contain the key string "VOTEPOSTED"
          * Soert by newest to oldest. Search through until you fdind entries for all the users. If not, then signal 
          * that some users have not posted.
          */
 
-        var userfilters = [];
+        var userFilters = [];
         _.each( this.users, function(user) {
             userFilters.push( {
                 property: 'User',
@@ -227,7 +281,7 @@ Ext.define('Niks.Apps.PokerUserConfig', {
             });
         })
 
-        var filters = Rally.data.wsapi.Filter.or(userFilters);
+        var filters = [Rally.data.wsapi.Filter.or(userFilters)];
 
         filters.push(
             {
@@ -240,22 +294,30 @@ Ext.define('Niks.Apps.PokerUserConfig', {
             {
                 property: 'Text',
                 operator: 'contains',
-                value: 'VOTEPOSTED'
+                value: pokerVotePosted
             }
         );
-        var discussionPosts = Ext.create('Rally.data.wsapi.Store', {
+        Ext.create('Rally.data.wsapi.Store', {
             model: 'ConversationPost',
             filters: Rally.data.wsapi.Filter.and(filters),
             autoLoad: true,
+            sorters: [
+                {
+                    property: 'CreationDate',   //Get this way around so that we can fetch the latest one first
+                    direction: 'DESC'
+                }
+            ],
             listeners: {
                 load: function(store, records, success) {
                     if (success){
+                        me._votes = records;
                         deferred.resolve(records);
                     }
                     else {
                         deferred.reject();
                     }
-                }
+                },
+                scope: me
             }
         });
         return deferred.promise;
@@ -274,14 +336,14 @@ Ext.define('Niks.Apps.PokerUserConfig', {
             if (cardSelected) {
                 Ext.create('Rally.ui.dialog.ConfirmDialog', {
                     title: 'Timer Expired',
-                    message: "Do you want to reveal the current voting?",
+                    message: "Do you want to collate the current voting?",
                     confirmLabel: 'Yes, please',
                     listeners: {
                         confirm: function() {
                             me.configPanel.down('#countdowntimer').getEl().removeCls('timerrunning');
                             me.configPanel.down('#countdowntimer').getEl().addCls('timerfinished');
                             me.configPanel.down('#countdowntimer').getEl().removeCls('textBlink');
-                            me._getVotes();
+                            me._doVotes();
                         },
                         cancel: function() {
                             me.configPanel.down('#countdowntimer').getEl().removeCls('timerrunning');
@@ -367,7 +429,11 @@ Ext.define('Niks.Apps.PokerUserConfig', {
                                     text: 'Start',
                                     width: 100,
                                     handler: function() {
-                                        me._countdownTimer(me);
+                                        if ( cardSelected === null ){
+                                            Rally.ui.notify.Notifier.showWarning({message: 'No story selected'});
+                                        }else {
+                                            me._countdownTimer(me);
+                                        }
                                     }
                                 },
                                 {
@@ -387,6 +453,52 @@ Ext.define('Niks.Apps.PokerUserConfig', {
                                     }
                                 },
 
+                            ]
+                        },
+                        {
+                            xtype: 'panel',
+                            id: 'votespanel',
+                            width: '100%',
+                            bodyCls: 'userpanel',
+                            margin: '10 0 10 0',
+                            layout: {
+                                type: 'table',
+                                columns: 3
+                            },
+                            defaults: {
+                                bodyStyle: 'padding:10px;border:none'
+                            }
+                        },
+                        {
+                            xtype: 'container',
+                            layout: 'hbox',
+                            items: [
+                                {
+                                    xtype: 'rallybutton',
+                                    text: 'Refresh Votes',
+                                    width: 100,
+                                    handler: function() {
+                                        me._doVotes();
+                                    }
+                                },
+                                {
+                                    xtype: 'rallybutton',
+                                    id: 'revealvotesbtn',
+                                    text: 'Reveal Votes',
+                                    width: 100,
+                                    disabled: true,
+                                    handler: function() {
+                                        if (me._revealVotes === false) {
+                                            me._revealVotes = true;
+                                            this.setText('Hide Votes');
+                                        }
+                                        else {
+                                            me._revealVotes = false;
+                                            this.setText('Reveal Votes');
+                                        }
+                                        me._setVotes(me._votes);
+                                    }
+                                }
                             ]
                         }
                         

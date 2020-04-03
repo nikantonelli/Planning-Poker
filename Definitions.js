@@ -23,3 +23,7 @@ const configSplitter2 = '|';
 /* Game numbers */
 
 const votingTime = 10;
+
+/* Poker 'post' types */
+
+const pokerVotePosted = 'POKER_VOTE_POSTED';
