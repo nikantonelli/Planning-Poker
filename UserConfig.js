@@ -200,6 +200,7 @@ Ext.define('Niks.Apps.PokerUserConfig', {
                 });
             }
             else {
+                
                 this._configureTimer(actions);
                 return true;
             }

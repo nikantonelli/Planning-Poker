@@ -104,13 +104,13 @@ Ext.define('Niks.Apps.PlanningGame', {
                     success: function(model) {
                         var record = Ext.create(model, {
                             text: '<p>'+pokerVotePosted+":"+me.voteSelected+'</p>',
-                            Artifact: me._storySelected.get('_ref'),
+                            Artifact: me._storySelected.story.get('_ref'),
                         });
                         record.save({
                             callback: function(result, operation) {
                                 if (operation.wasSuccessful()) {
                                     Rally.ui.notify.Notifier.show({message: Ext.String.format('Vote Posted on {0} was {1}',
-                                        me._storySelected.get('FormattedID'),
+                                        me._storySelected.story.get('FormattedID'),
                                         me._voteSelected)});
                                 }
                                 else {
@@ -986,6 +986,7 @@ Ext.define('Niks.Apps.PokerUserConfig', {
                 });
             }
             else {
+                
                 this._configureTimer(actions);
                 return true;
             }
