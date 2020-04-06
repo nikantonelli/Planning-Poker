@@ -555,6 +555,14 @@ Ext.define('Niks.Apps.PokerUserConfig', {
                                 me._revealVotes = !me._revealVotes;
                                 me._setVotes(me._votes);
                             }
+                        },
+                        {
+                            xtype: 'rallybutton',
+                            width: 100,
+                            text: 'Delete Votes',
+                            handler: function() {
+                                me.app.fireEvent('removeGame');
+                            }
                         }
                     ]
                 }
@@ -629,15 +637,7 @@ Ext.define('Niks.Apps.PokerUserConfig', {
                     me.app.fireEvent('changeIteration');
                 }
             });
-            page.down('#menu').add({
-                xtype: 'rallybutton',
-                width: 100,
-                text: 'Delete Votes',
-                margin: '10 10 0 10',
-                handler: function() {
-                    me.app.fireEvent('removeGame');
-                }
-            });
+            
         }
         else {
             page.down('#menu').add({
