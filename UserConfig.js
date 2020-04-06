@@ -632,7 +632,7 @@ Ext.define('Niks.Apps.PokerUserConfig', {
             page.down('#menu').add({
                 xtype: 'rallybutton',
                 width: 100,
-                text: 'Remove Game',
+                text: 'Delete Votes',
                 margin: '10 10 0 10',
                 handler: function() {
                     me.app.fireEvent('removeGame');
