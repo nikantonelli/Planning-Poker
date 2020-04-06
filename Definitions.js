@@ -26,4 +26,7 @@ const votingTime = 10;
 
 /* Poker 'post' types */
 
-const pokerVotePosted = 'POKER_VOTE_POSTED';
+const pokerMsg = 
+{ 
+    votePosted: 'POKER_VOTE_POSTED',
+};

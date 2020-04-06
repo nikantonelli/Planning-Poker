@@ -34,14 +34,46 @@ Ext.define('Niks.Apps.PlanningGame', {
 
     listeners: {
         removeGame: function() {
+            var filters = [];
+            //Get all the message types from array
+            _.each(Object.keys(pokerMsg), function (msg) {
+                filters.push({
+                    property: 'Text',
+                    operator: 'contains',
+                    value: pokerMsg[msg]
+                });
+            });
+            var me = this;
             //Remove all tagged conversation posts for stories in the project node and remove the contents of the Project custom field
             Ext.create('Rally.ui.dialog.ConfirmDialog', {
                 title: 'Clean up from game',
                 message: "Remove all game entries in this project (including game generated posts)?",
-                confirmLabel: 'Yes, please',
+                confirmLabel: 'Yes',
                 listeners: {
                     confirm: function() {
-                        debugger;
+                        Ext.create('Rally.data.wsapi.Store', {
+                            model: 'ConversationPost',
+                            filters: Rally.data.wsapi.Filter.or(filters),
+                            autoLoad: true,
+                            context: me.getContext().getDataContext(),
+                            listeners: {
+                                load: function(store, records, successful) {
+                                    var recordCount = records.length;
+                                    var promises = [];
+                                    if (successful) {
+                                        _.each(records, function(record) {
+                                            promises.push(record.destroy());   //Dangerous, but necessary.
+                                        });
+                                        Deft.Promise.all(promises).then({
+                                            success: function() {
+                                                Rally.ui.notify.Notifier.showWarning({ message: Ext.String.format(' {0} Records Deleted', recordCount)});
+                                                me._UC.restart();
+                                            }
+                                        });
+                                    }
+                                }
+                            }
+                        });
                     }
                 }
             });
@@ -103,7 +135,7 @@ Ext.define('Niks.Apps.PlanningGame', {
                     type: 'ConversationPost',
                     success: function(model) {
                         var record = Ext.create(model, {
-                            Text: '<p>'+pokerVotePosted+":"+me._voteSelected+'</p>',
+                            Text: '<p>'+pokerMsg.votePosted+":"+me._voteSelected+'</p>',
                             Artifact: me._storySelected.story.get('_ref'),
                         });
                         record.save({
@@ -205,7 +237,6 @@ Ext.define('Niks.Apps.PlanningGame', {
         /** When we come here, everything should be in place to start a new game
          * Now fetch the User Stories - with the option of only those not sized yet
          */
-
         me._IC.getCurrentIteration().then({
             success: function(iteration) {
                 var filters = [{
@@ -541,7 +572,10 @@ const votingTime = 10;
 
 /* Poker 'post' types */
 
-const pokerVotePosted = 'POKER_VOTE_POSTED';
+const pokerMsg = 
+{ 
+    votePosted: 'POKER_VOTE_POSTED',
+};
 
                 Ext.define('Niks.Apps.Panel', {
 
@@ -809,6 +843,7 @@ Ext.define('Niks.Apps.PokerCard', {
             margin: 10,
             disabled: true,
             text: size.toString(),
+            cls: 'buttontext',
             width: this.width - 22,
             height: this.height - 22,
             handler : function() {
@@ -821,7 +856,6 @@ Ext.define('Niks.Apps.PokerCard', {
     applyStory: function(story) {
         var me = this;
         this.story = story;
-//        debugger;
         var ls = story.get(cardSizeField);
         var description = story.get('Description');
         description = description.length?description:'<b>Please Enter A Description of the Required Effort</b>';
@@ -835,7 +869,6 @@ Ext.define('Niks.Apps.PokerCard', {
                 margin: '5 0 5 10',
                 cls: 'definedfield'
             });
-            debugger;
         this.add( tf );
         tf.update(Ext.String.format('Current Size: {0}',ls));
 
@@ -905,6 +938,7 @@ Ext.define('Niks.Apps.PokerUserConfig', {
     restart: function() {
         this.stories = [];
         this.getPanel().down('#cardspace').removeAll();
+        this._doVotes();
     },
 
     //Stories can come as the form of the records in a store or the valueSeries
@@ -1010,6 +1044,10 @@ Ext.define('Niks.Apps.PokerUserConfig', {
         }
     },
 
+    refreshVotes: function() {
+        this._doVotes();
+    },
+
     setVote: function(vote) {
         var storySelected = _.find( this.stories, function(story) {
             return cardSelected.story.get(cardIdField) === story.id;
@@ -1019,7 +1057,7 @@ Ext.define('Niks.Apps.PokerUserConfig', {
     },
 
     clearVote: function() {
-        this.getPanel().down('#votemessage').update('You have not chosen &darr;');
+        this.getPanel().down('#votemessage').update('Choose a vote &darr;');
     },
 
     _timerRunning: 0,
@@ -1073,7 +1111,7 @@ Ext.define('Niks.Apps.PokerUserConfig', {
             var timeAt = "";
             if (foundUserAnswer !== undefined) {
                 answer = foundUserAnswer.get('Text');
-                answer = this._revealVotes? answer.split(pokerVotePosted+':')[1].split('<')[0]: '?';
+                answer = this._revealVotes? answer.split(pokerMsg.votePosted+':')[1].split('<')[0]: '?';
                 timeAt = foundUserAnswer.get('_CreatedAt');
             }
             votesPanel.add( {
@@ -1132,7 +1170,7 @@ Ext.define('Niks.Apps.PokerUserConfig', {
             {
                 property: 'Text',
                 operator: 'contains',
-                value: pokerVotePosted
+                value: pokerMsg.votePosted
             }
         );
         Ext.create('Rally.data.wsapi.Store', {
@@ -1172,27 +1210,27 @@ Ext.define('Niks.Apps.PokerUserConfig', {
             setTimeout(me._countdownTimer, 1000, me);
         } else {
             if (cardSelected) {
-                Ext.create('Rally.ui.dialog.ConfirmDialog', {
-                    title: 'Timer Expired',
-                    message: "Refresh Votes?",
-                    confirmLabel: 'Yes, please',
-                    listeners: {
-                        confirm: function() {
+                // Ext.create('Rally.ui.dialog.ConfirmDialog', {
+                //     title: 'Timer Expired',
+                //     message: "Refresh Votes?",
+                //     confirmLabel: 'Yes, please',
+                //     listeners: {
+                //         confirm: function() {
                             me.configPanel.down('#countdowntimer').getEl().removeCls('timerrunning');
                             me.configPanel.down('#countdowntimer').getEl().addCls('timerfinished');
                             me.configPanel.down('#countdowntimer').getEl().removeCls('textBlink');
                             me._doVotes();
-                        },
-                        cancel: function() {
-                            me.configPanel.down('#countdowntimer').getEl().removeCls('timerrunning');
-                            me.configPanel.down('#countdowntimer').getEl().addCls('timerfinished');
-                            me.configPanel.down('#countdowntimer').getEl().removeCls('textBlink');
+                        // },
+                        // cancel: function() {
+                        //     me.configPanel.down('#countdowntimer').getEl().removeCls('timerrunning');
+                        //     me.configPanel.down('#countdowntimer').getEl().addCls('timerfinished');
+                        //     me.configPanel.down('#countdowntimer').getEl().removeCls('textBlink');
 
-                        },
-                        scope: me
+                        // },
+                        // scope: me
                     }
-                });
-            }
+//                });
+//            }
             me.configPanel.down('#countdowntimer').getEl().addCls('timerfinished');
             me.configPanel.down('#countdowntimer').getEl().addCls('textBlink');
 
@@ -1368,13 +1406,9 @@ Ext.define('Niks.Apps.PokerUserConfig', {
             _.each(me.valueSeries, function(value) {
                 var card = Ext.create('Niks.Apps.PokerCard', {
                     width: 150,
-                    height: 150
+                    height: 80
                 });
                 szsp.add(card);
-                // debugger;
-                // card.getEl().on( 'click', function(a,b,c,d,e,f) {
-                //     debugger;
-                // })
                 card.setVoteSize(value);
             });
         }
@@ -1482,7 +1516,10 @@ Ext.define('Niks.Apps.PokerUserConfig', {
                 panel.add( {
                     xtype: 'rallyiterationcombobox',
                     margin: 40,
-                    store: me.iterationStore,
+                    store: me._iterationStore,
+                    storeConfig: {
+                        autoLoad: false
+                    },
                     value: iteration,
                     listeners: {
                         select: function(store,record) {
@@ -1508,29 +1545,35 @@ Ext.define('Niks.Apps.PokerUserConfig', {
     },
 
     getCurrentIteration: function() {
-        if (this[iterConfigName].currentIteration === null) {
-            return this._getIterations();
+        var me = this;
+        if (!this[iterConfigName].currentIteration) {
+            return this._getIterations(true);
         }
         else {
             var deferred = Ext.create("Deft.Deferred");
-            deferred.resolve( this[iterConfigName].currentIteration);   /* Resolve straightaway as we already have it. */
+            if (!me._iterationStore) {
+                me._getIterations(false).then({
+                    success: function() {
+                        deferred.resolve( me[iterConfigName].currentIteration);
+                    }
+                })
+            } else {
+                deferred.resolve( me[iterConfigName].currentIteration);   /* Resolve straightaway as we already have it. */
+            }
             return deferred.promise;
         }
     },
 
-    _getIterations: function() {
+    _getIterations: function(setIteration) {
 
         var me =this;
         /** In this project, find the iteration that is ongoing */
         var deferred = Ext.create("Deft.Deferred");
 
-        this._iterationStore = Ext.create('Rally.data.wsapi.Store', {
+        Ext.create('Rally.data.wsapi.Store', {
             model: Ext.identityFn('Iteration'),
             autoLoad: true,
-            context: {
-                projectScopeUp: false,
-                projectScopeDown: false
-            },
+            context: me.app.getContext().getDataContext(),
             fetch: ["Name", "StartDate", "EndDate", "ObjectID", "State", "PlannedVelocity"],
             filters: [
                 {
@@ -1548,8 +1591,10 @@ Ext.define('Niks.Apps.PokerUserConfig', {
             listeners: {
                 load: function(store, records, success) {
                     if (success) {
-                        me.iterationStore = store;
-                        me[iterConfigName].currentIteration = records[0].get('_ref');
+                        me._iterationStore = store;
+                        if (setIteration) {
+                            me[iterConfigName].currentIteration = store.getAt(0).get('_ref');
+                        }
                         deferred.resolve(me[iterConfigName].currentIteration);
                     }
                     else {
@@ -1642,8 +1687,9 @@ Ext.define('Niks.Apps.PokerUserConfig', {
 .buttonpushed {
   color: #78bee0;
 }
-.buttonText {
+.buttontext {
   font-size: 24px;
+  text-align: 'center';
 }
 
     </style>

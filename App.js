@@ -25,14 +25,46 @@ Ext.define('Niks.Apps.PlanningGame', {
 
     listeners: {
         removeGame: function() {
+            var filters = [];
+            //Get all the message types from array
+            _.each(Object.keys(pokerMsg), function (msg) {
+                filters.push({
+                    property: 'Text',
+                    operator: 'contains',
+                    value: pokerMsg[msg]
+                });
+            });
+            var me = this;
             //Remove all tagged conversation posts for stories in the project node and remove the contents of the Project custom field
             Ext.create('Rally.ui.dialog.ConfirmDialog', {
                 title: 'Clean up from game',
                 message: "Remove all game entries in this project (including game generated posts)?",
-                confirmLabel: 'Yes, please',
+                confirmLabel: 'Yes',
                 listeners: {
                     confirm: function() {
-                        debugger;
+                        Ext.create('Rally.data.wsapi.Store', {
+                            model: 'ConversationPost',
+                            filters: Rally.data.wsapi.Filter.or(filters),
+                            autoLoad: true,
+                            context: me.getContext().getDataContext(),
+                            listeners: {
+                                load: function(store, records, successful) {
+                                    var recordCount = records.length;
+                                    var promises = [];
+                                    if (successful) {
+                                        _.each(records, function(record) {
+                                            promises.push(record.destroy());   //Dangerous, but necessary.
+                                        });
+                                        Deft.Promise.all(promises).then({
+                                            success: function() {
+                                                Rally.ui.notify.Notifier.showWarning({ message: Ext.String.format(' {0} Records Deleted', recordCount)});
+                                                me._UC.restart();
+                                            }
+                                        });
+                                    }
+                                }
+                            }
+                        });
                     }
                 }
             });
@@ -94,7 +126,7 @@ Ext.define('Niks.Apps.PlanningGame', {
                     type: 'ConversationPost',
                     success: function(model) {
                         var record = Ext.create(model, {
-                            Text: '<p>'+pokerVotePosted+":"+me._voteSelected+'</p>',
+                            Text: '<p>'+pokerMsg.votePosted+":"+me._voteSelected+'</p>',
                             Artifact: me._storySelected.story.get('_ref'),
                         });
                         record.save({
@@ -196,7 +228,6 @@ Ext.define('Niks.Apps.PlanningGame', {
         /** When we come here, everything should be in place to start a new game
          * Now fetch the User Stories - with the option of only those not sized yet
          */
-
         me._IC.getCurrentIteration().then({
             success: function(iteration) {
                 var filters = [{

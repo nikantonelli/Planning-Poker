@@ -31,7 +31,10 @@ Ext.define('Niks.Apps.PokerIterationConfig', {
                 panel.add( {
                     xtype: 'rallyiterationcombobox',
                     margin: 40,
-                    store: me.iterationStore,
+                    store: me._iterationStore,
+                    storeConfig: {
+                        autoLoad: false
+                    },
                     value: iteration,
                     listeners: {
                         select: function(store,record) {
@@ -57,29 +60,35 @@ Ext.define('Niks.Apps.PokerIterationConfig', {
     },
 
     getCurrentIteration: function() {
-        if (this[iterConfigName].currentIteration === null) {
-            return this._getIterations();
+        var me = this;
+        if (!this[iterConfigName].currentIteration) {
+            return this._getIterations(true);
         }
         else {
             var deferred = Ext.create("Deft.Deferred");
-            deferred.resolve( this[iterConfigName].currentIteration);   /* Resolve straightaway as we already have it. */
+            if (!me._iterationStore) {
+                me._getIterations(false).then({
+                    success: function() {
+                        deferred.resolve( me[iterConfigName].currentIteration);
+                    }
+                })
+            } else {
+                deferred.resolve( me[iterConfigName].currentIteration);   /* Resolve straightaway as we already have it. */
+            }
             return deferred.promise;
         }
     },
 
-    _getIterations: function() {
+    _getIterations: function(setIteration) {
 
         var me =this;
         /** In this project, find the iteration that is ongoing */
         var deferred = Ext.create("Deft.Deferred");
 
-        this._iterationStore = Ext.create('Rally.data.wsapi.Store', {
+        Ext.create('Rally.data.wsapi.Store', {
             model: Ext.identityFn('Iteration'),
             autoLoad: true,
-            context: {
-                projectScopeUp: false,
-                projectScopeDown: false
-            },
+            context: me.app.getContext().getDataContext(),
             fetch: ["Name", "StartDate", "EndDate", "ObjectID", "State", "PlannedVelocity"],
             filters: [
                 {
@@ -97,8 +106,10 @@ Ext.define('Niks.Apps.PokerIterationConfig', {
             listeners: {
                 load: function(store, records, success) {
                     if (success) {
-                        me.iterationStore = store;
-                        me[iterConfigName].currentIteration = records[0].get('_ref');
+                        me._iterationStore = store;
+                        if (setIteration) {
+                            me[iterConfigName].currentIteration = store.getAt(0).get('_ref');
+                        }
                         deferred.resolve(me[iterConfigName].currentIteration);
                     }
                     else {

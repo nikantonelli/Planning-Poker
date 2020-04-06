@@ -23,6 +23,7 @@ Ext.define('Niks.Apps.PokerCard', {
             margin: 10,
             disabled: true,
             text: size.toString(),
+            cls: 'buttontext',
             width: this.width - 22,
             height: this.height - 22,
             handler : function() {
@@ -35,7 +36,6 @@ Ext.define('Niks.Apps.PokerCard', {
     applyStory: function(story) {
         var me = this;
         this.story = story;
-//        debugger;
         var ls = story.get(cardSizeField);
         var description = story.get('Description');
         description = description.length?description:'<b>Please Enter A Description of the Required Effort</b>';
@@ -49,7 +49,6 @@ Ext.define('Niks.Apps.PokerCard', {
                 margin: '5 0 5 10',
                 cls: 'definedfield'
             });
-            debugger;
         this.add( tf );
         tf.update(Ext.String.format('Current Size: {0}',ls));
 
@@ -119,6 +118,7 @@ Ext.define('Niks.Apps.PokerUserConfig', {
     restart: function() {
         this.stories = [];
         this.getPanel().down('#cardspace').removeAll();
+        this._doVotes();
     },
 
     //Stories can come as the form of the records in a store or the valueSeries
@@ -224,6 +224,10 @@ Ext.define('Niks.Apps.PokerUserConfig', {
         }
     },
 
+    refreshVotes: function() {
+        this._doVotes();
+    },
+
     setVote: function(vote) {
         var storySelected = _.find( this.stories, function(story) {
             return cardSelected.story.get(cardIdField) === story.id;
@@ -233,7 +237,7 @@ Ext.define('Niks.Apps.PokerUserConfig', {
     },
 
     clearVote: function() {
-        this.getPanel().down('#votemessage').update('You have not chosen &darr;');
+        this.getPanel().down('#votemessage').update('Choose a vote &darr;');
     },
 
     _timerRunning: 0,
@@ -287,7 +291,7 @@ Ext.define('Niks.Apps.PokerUserConfig', {
             var timeAt = "";
             if (foundUserAnswer !== undefined) {
                 answer = foundUserAnswer.get('Text');
-                answer = this._revealVotes? answer.split(pokerVotePosted+':')[1].split('<')[0]: '?';
+                answer = this._revealVotes? answer.split(pokerMsg.votePosted+':')[1].split('<')[0]: '?';
                 timeAt = foundUserAnswer.get('_CreatedAt');
             }
             votesPanel.add( {
@@ -346,7 +350,7 @@ Ext.define('Niks.Apps.PokerUserConfig', {
             {
                 property: 'Text',
                 operator: 'contains',
-                value: pokerVotePosted
+                value: pokerMsg.votePosted
             }
         );
         Ext.create('Rally.data.wsapi.Store', {
@@ -386,27 +390,27 @@ Ext.define('Niks.Apps.PokerUserConfig', {
             setTimeout(me._countdownTimer, 1000, me);
         } else {
             if (cardSelected) {
-                Ext.create('Rally.ui.dialog.ConfirmDialog', {
-                    title: 'Timer Expired',
-                    message: "Refresh Votes?",
-                    confirmLabel: 'Yes, please',
-                    listeners: {
-                        confirm: function() {
+                // Ext.create('Rally.ui.dialog.ConfirmDialog', {
+                //     title: 'Timer Expired',
+                //     message: "Refresh Votes?",
+                //     confirmLabel: 'Yes, please',
+                //     listeners: {
+                //         confirm: function() {
                             me.configPanel.down('#countdowntimer').getEl().removeCls('timerrunning');
                             me.configPanel.down('#countdowntimer').getEl().addCls('timerfinished');
                             me.configPanel.down('#countdowntimer').getEl().removeCls('textBlink');
                             me._doVotes();
-                        },
-                        cancel: function() {
-                            me.configPanel.down('#countdowntimer').getEl().removeCls('timerrunning');
-                            me.configPanel.down('#countdowntimer').getEl().addCls('timerfinished');
-                            me.configPanel.down('#countdowntimer').getEl().removeCls('textBlink');
+                        // },
+                        // cancel: function() {
+                        //     me.configPanel.down('#countdowntimer').getEl().removeCls('timerrunning');
+                        //     me.configPanel.down('#countdowntimer').getEl().addCls('timerfinished');
+                        //     me.configPanel.down('#countdowntimer').getEl().removeCls('textBlink');
 
-                        },
-                        scope: me
+                        // },
+                        // scope: me
                     }
-                });
-            }
+//                });
+//            }
             me.configPanel.down('#countdowntimer').getEl().addCls('timerfinished');
             me.configPanel.down('#countdowntimer').getEl().addCls('textBlink');
 
@@ -582,13 +586,9 @@ Ext.define('Niks.Apps.PokerUserConfig', {
             _.each(me.valueSeries, function(value) {
                 var card = Ext.create('Niks.Apps.PokerCard', {
                     width: 150,
-                    height: 150
+                    height: 80
                 });
                 szsp.add(card);
-                // debugger;
-                // card.getEl().on( 'click', function(a,b,c,d,e,f) {
-                //     debugger;
-                // })
                 card.setVoteSize(value);
             });
         }
