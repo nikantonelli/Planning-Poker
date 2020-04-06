@@ -158,7 +158,7 @@ Ext.define('Niks.Apps.PokerGameConfig', {
             autoSelect: false,
             listeners: {
                 //Setvalue fires when the thing is first set up with a null value.
-                setvalue: function(entry) {
+                select: function(entry) {
                     if (entry.value !== null) {
                         me.setModerator(entry.lastSelection[0]);
                         panel.down('#curMod').setValue(me.moderatorUser.get('UserName'));
