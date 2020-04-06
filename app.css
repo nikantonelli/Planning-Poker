@@ -76,3 +76,7 @@
 .buttonpushed {
     color: rgb(120,190,224)
 }
+
+.buttonText {
+    font-size: 24px;
+}

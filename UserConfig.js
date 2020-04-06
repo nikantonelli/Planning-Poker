@@ -19,43 +19,39 @@ Ext.define('Niks.Apps.PokerCard', {
     applyVoteSize: function(size) {
         this.voteSize = size;
         var me = this;
-        this.add( {
-            xtype: 'rallybutton',
+        var btn = Ext.create('Rally.ui.Button',{
             margin: 10,
             disabled: true,
             text: size.toString(),
-            cls: 'clearpanel votingSizeClass',
             width: this.width - 22,
-            pressedCls: 'buttonpushed',
             height: this.height - 22,
             handler : function() {
                 this.up('#pokerApp').fireEvent('voteselected',me.voteSize);
             }
         });
+        this.add( btn);
     },
 
     applyStory: function(story) {
         var me = this;
         this.story = story;
+//        debugger;
         var ls = story.get(cardSizeField);
         var description = story.get('Description');
         description = description.length?description:'<b>Please Enter A Description of the Required Effort</b>';
         ls = (ls === null)?(ls === 0?'set to zero':'not set'):ls.toString();
 
-        this.add(
-            {
+
+        var tf = Ext.create('Ext.form.field.Text', {
                 xtype: 'textfield',
                 id: 'sizeText'+story.get(cardIdField),
-                fieldLabel: 'Current Size',
                 width: cardWidth - 30,
-                labelWidth: 150,
                 margin: '5 0 5 10',
-                html: ls,
-                fieldCls:  'clearpanel cardtext',
-                labelCls: 'cardtext',
                 cls: 'definedfield'
-            }
-        );
+            });
+            debugger;
+        this.add( tf );
+        tf.update(Ext.String.format('Current Size: {0}',ls));
 
         var taf = Ext.create('Ext.form.Label',{
                 margin: cardMargin,
@@ -65,8 +61,7 @@ Ext.define('Niks.Apps.PokerCard', {
                 hideLabel: true,
                 readOnly: true,
                 autoScroll: true,
-                html: description,
-                
+                html: description
             }
         );
         this.add(taf);
@@ -200,7 +195,7 @@ Ext.define('Niks.Apps.PokerUserConfig', {
                 });
             }
             else {
-                
+
                 this._configureTimer(actions);
                 return true;
             }
@@ -238,7 +233,7 @@ Ext.define('Niks.Apps.PokerUserConfig', {
     },
 
     clearVote: function() {
-        this.getPanel().down('#votemessage').update('You have not chosen');
+        this.getPanel().down('#votemessage').update('You have not chosen &darr;');
     },
 
     _timerRunning: 0,
@@ -568,7 +563,7 @@ Ext.define('Niks.Apps.PokerUserConfig', {
                 grow: true,
                 hideLabel: true,
                 readOnly: true,
-                html: 'Choose a story',
+                html: '&larr; Choose a story',
                 cls: 'clearpanel timertext'
             });
             var szsp = Ext.create('Ext.panel.Panel',
