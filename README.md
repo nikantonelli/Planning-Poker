@@ -10,9 +10,11 @@ The app needs a field on the Project artifact to be able to store the config. Th
 
 When first starting in a project, the app will ask if you want to eb the moderator. Do this to start with, and then change it afterwards. The app uses the moderator setting to serve up the different pages.
 
-The moderator would configure the game so that you are working to a particular iteration (current or future, NOT past!). The moderator can choose to include all stories, or all those with a 0 size and 'unset' ones. Zero size is not really an acceptable size, so should be reworked.
+The moderator would configure the game so that you are working to a particular iteration (current or future, NOT past!). The moderator can choose to include all stories, or all those with a 0 size and 'unset' ones. Zero size is not really an acceptable size, so should be revoted on.
 
-RThe moderator can choose a story to collate the votes on. The team members can vote on any story, but the moderator will only collate for the story they have chosen. Once collated, the moderator then can reveal them all at the same time. There is a timer implemented to help with this. THe timer can be set through the config button on the moderator display.
+The moderator can choose a story to collate the votes on. The team members can vote on any story, but the moderator will only collate for the story they have chosen. Once collated, the moderator then can reveal them all at the same time. There is a timer implemented to help with this. The timer can be set through the config button on the moderator display.
+
+At the moment, the moderator cannot vote, just moderate.
 
 ## Moderator Screen
 ![alt text](https://github.com/nikantonelli/Planning-Poker/blob/master/Images/ModeratorScreen.png)
