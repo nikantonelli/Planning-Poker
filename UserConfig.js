@@ -480,6 +480,7 @@ Ext.define('Niks.Apps.PokerUserConfig', {
                     fieldLabel: 'Countdown Timer',
                     labelAlign: 'left',
                     value: "00:00",
+                    readOnly: true,
                     labelWidth: 120,
                     margin: '5 0 5 10',
                 },
