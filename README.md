@@ -14,6 +14,8 @@ The moderator would configure the game so that you are working to a particular i
 
 RThe moderator can choose a story to collate the votes on. The team members can vote on any story, but the moderator will only collate for the story they have chosen. Once collated, the moderator then can reveal them all at the same time. There is a timer implemented to help with this. THe timer can be set through the config button on the moderator display.
 
+At the moment, the moderator cannot vote.
+
 ## Moderator Screen
 ![alt text](https://github.com/nikantonelli/Planning-Poker/blob/master/Images/ModeratorScreen.png)
 
