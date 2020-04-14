@@ -20,6 +20,8 @@ When a consensus is reached, the moderator can click on the FormattedID link and
 
 The team members can also make use of the link to have a look at more details. It will open in a separate tab so as not to disturb your voting app.
 
+There are probably some bugs in here, but it generally works!
+
 ## Moderator Screen
 ![alt text](https://github.com/nikantonelli/Planning-Poker/blob/master/Images/ModeratorScreen.png)
 
