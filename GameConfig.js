@@ -20,7 +20,6 @@ Ext.define('Niks.Apps.PokerGameConfig', {
     moderatorUser: null,    /** Full object for the moderator */
     
     statics: {
-        userIdField: "ObjectID",
         votingTime: '10'
     },
 
@@ -57,10 +56,10 @@ Ext.define('Niks.Apps.PokerGameConfig', {
     },
 
     addUser: function(user) {   //Passed in a user record
-        if ( _.find( this.userIDs, {userOID: user.get(this.self.userIdField)})) {
+        if ( _.find( this.userIDs, {userOID: user.get(userIdField)})) {
             console.log("Adding existing member - ignoring!");
         } else {
-            this.userIDs.push(user[this.self.userIdField]);
+            this.userIDs.push(user[userIdField]);
         }
     },
 
@@ -74,8 +73,8 @@ Ext.define('Niks.Apps.PokerGameConfig', {
     },
 
     setModerator: function(user) {
-        debugger;
-        this[mainConfigName].moderatorID = user[this.self.userIdField];
+        console.log('mod set to:',user);
+        this[mainConfigName].moderatorID = user.get(userIdField);
         this.moderatorUser = user;
     },
 
@@ -87,7 +86,7 @@ Ext.define('Niks.Apps.PokerGameConfig', {
             autoLoad: true,
             filters: [
                 {
-                    property: this.self.userIdField,
+                    property: userIdField,
                     value: id
                 }
             ],
@@ -153,7 +152,7 @@ Ext.define('Niks.Apps.PokerGameConfig', {
             xtype: 'rallyusercombobox',
             id: 'modChooser',
             fieldLabel: 'Change Moderator To',
-            valueField: this.self.userIdField,
+            valueField: userIdField,
             labelWidth: 200,
             margin: '10 0 10 20',
             autoSelect: false,

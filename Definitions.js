@@ -23,6 +23,7 @@ const configSplitter2 = '|';
 /* Game numbers */
 
 const votingTime = 10;
+const userIdField = "ObjectID";
 
 /* Poker 'post' types */
 

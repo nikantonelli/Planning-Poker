@@ -38,7 +38,7 @@ Ext.define('Niks.Apps.PokerCard', {
         this.story = story;
         var ls = story.get(cardSizeField);
         var description = story.get('Description');
-        description = description.length?description:'<b>Please Enter A Description of the Required Effort</b>';
+        description = description.length?description:'<p>Description field Empty</p><p><b>Please go to Artefact and enter a Description of the Required Effort</b></p>';
         ls = (ls === null)?(ls === 0?'set to zero':'not set'):ls.toString();
 
 
@@ -117,14 +117,14 @@ Ext.define('Niks.Apps.PokerUserConfig', {
 
     restart: function() {
         this.stories = [];
-        this.getPanel().down('#cardspace').removeAll();
+        this.getPanel().down('#cardspace').removeAll(false);
         this._doVotes();
     },
 
     //Stories can come as the form of the records in a store or the valueSeries
     loadStories: function( stories ) {
         var me = this;
-        me.getPanel().down('#cardspace').removeAll();
+        if (me.getPanel().down('#cardspace')) { me.getPanel().down('#cardspace').removeAll(false);}
         me.stories = [];
         if (stories === null) {
             //Add the cards from the valueSeries because we are a standard user

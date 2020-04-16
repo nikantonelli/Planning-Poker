@@ -19,4 +19,13 @@ Ext.define('Niks.Apps.Panel', {
         this.getPanel().hide();
     },
 
+    destroyPanel: function() {
+        if (this.configPanel) {
+            this.getPanel().destroy();
+            this.configPanel = null;
+        }
+    },
+
+
+
 });

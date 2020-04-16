@@ -186,13 +186,13 @@ Ext.define('Niks.Apps.PlanningGame', {
     },
 
     _iAmModerator: function() {
-        debugger;
         return this.getContext().getUser().ObjectID === this._GC.getModerator().get('ObjectID');
     },
 
     _setUpUserScreen: function() {
         //Check for whether we are the moderator
         var iAmMod = this._iAmModerator();
+        this._UC.destroyPanel();
         var page = this._UC.getPanel(iAmMod);
         this._UC.loadStories(this._storyStore.getRecords());
         page.show();
@@ -357,16 +357,19 @@ Ext.define('Niks.Apps.PlanningGame', {
                                 listeners: {
                                     confirm: function() {
                                         //Set user up as moderator
-                                        me._GC.setModerator( me.getContext().getUser());
-                                        me._saveProjectConfig().then({
+                                        me._GC.setModeratorFromId( me.getContext().getUser()[userIdField]).then({
                                             success: function() {
-                                                /** Config saved and we are ready to go */
-                                                me._loadGameConfig();
-                                            },
-                                            failure: function(e) {
-                                                console.log("Failed to save project config",e);
-                                            },
-                                            scope: me
+                                                me._saveProjectConfig().then({
+                                                    success: function() {
+                                                        /** Config saved and we are ready to go */
+                                                        me._loadGameConfig();
+                                                    },
+                                                    failure: function(e) {
+                                                        console.log("Failed to save project config",e);
+                                                    },
+                                                    scope: me
+                                                });
+                                            }
                                         });
                                     }
                                 }
