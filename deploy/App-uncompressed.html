@@ -195,7 +195,7 @@ Ext.define('Niks.Apps.PlanningGame', {
     },
 
     _iAmModerator: function() {
-        return this.getContext().getUser().ObjectID === this._GC.getModerator().get('ObjectID');
+        return this.getContext().getUser().ObjectID === this._GC.getModerator()['ObjectID'];
     },
 
     _setUpUserScreen: function() {
@@ -676,7 +676,8 @@ Ext.define('Niks.Apps.PokerGameConfig', {
     },
 
     setModerator: function(user) {
-        this[mainConfigName].moderatorID = user.get(this.self.userIdField);
+        debugger;
+        this[mainConfigName].moderatorID = user[this.self.userIdField];
         this.moderatorUser = user;
     },
 

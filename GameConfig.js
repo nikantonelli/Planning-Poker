@@ -74,7 +74,8 @@ Ext.define('Niks.Apps.PokerGameConfig', {
     },
 
     setModerator: function(user) {
-        this[mainConfigName].moderatorID = user.get(this.self.userIdField);
+        debugger;
+        this[mainConfigName].moderatorID = user[this.self.userIdField];
         this.moderatorUser = user;
     },
 
