@@ -109,7 +109,9 @@ Ext.define('Niks.Apps.PokerIterationConfig', {
                     if (success) {
                         me._iterationStore = store;
                         if (setIteration) {
-                            me[iterConfigName].currentIteration = store.getAt(0).get('_ref');
+                            if (store.totalCount) {
+                                me[iterConfigName].currentIteration = store.getAt(0).get('_ref');
+                            }
                         }
                         deferred.resolve(me[iterConfigName].currentIteration);
                     }
