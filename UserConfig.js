@@ -223,6 +223,7 @@ Ext.define('Niks.Apps.PokerUserConfig', {
                 _.each(ap.getChildItemsToDisable(), function(item) { item.enable();});
             } else {
                 _.each(ap.getChildItemsToDisable(), function(item) { item.disable();});
+                this.getPanel().down('#votemessage').update('Choose an item &rarr;');
             }
             return true;
         }
