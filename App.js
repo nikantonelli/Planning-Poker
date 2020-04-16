@@ -186,7 +186,8 @@ Ext.define('Niks.Apps.PlanningGame', {
     },
 
     _iAmModerator: function() {
-        return this.getContext().getUser().ObjectID === this._GC.getModerator()['ObjectID'];
+        debugger;
+        return this.getContext().getUser().ObjectID === this._GC.getModerator().get('ObjectID');
     },
 
     _setUpUserScreen: function() {
