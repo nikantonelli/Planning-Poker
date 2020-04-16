@@ -175,7 +175,7 @@ Ext.define('Niks.Apps.PokerUserConfig', {
     setVoting: function(card, mainConfig) {
         var me = this;
         this.votingCard = card;
-        this.mainConfig = mainConfig;
+        this[mainConfigName] = mainConfig;
         var actions = this.getPanel().down('#actions');
         if (this.userOrModerator) {
             //For the moderator, we need to manage the timer and fetch the votes
@@ -247,12 +247,12 @@ Ext.define('Niks.Apps.PokerUserConfig', {
     },
 
     _configureTimer: function(actions) {
-        if ((this.mainConfig === undefined) || (this.mainConfig.votingTime === "00:00")) {
+        if ((this[mainConfigName] === undefined) || (this[mainConfigName].votingTime === "00:00")) {
             return;
         }
-        var bits = this.mainConfig.votingTime.split(':');   //Shortcut as it should always be 00:00 format
+        var bits = this[mainConfigName].votingTime.split(':');   //Shortcut as it should always be 00:00 format
         this._timerRunning = (bits[0] * 60) + bits[1];
-        this.configPanel.down('#countdowntimer').setValue(this.mainConfig.votingTime);
+        this.configPanel.down('#countdowntimer').setValue(this[mainConfigName].votingTime);
         this.configPanel.down('#countdowntimer').getEl().removeCls('timerfinished');
         this.configPanel.down('#countdowntimer').getEl().removeCls('textBlink');
         this.configPanel.down('#countdowntimer').getEl().addCls('timerreset');

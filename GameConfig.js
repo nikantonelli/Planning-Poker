@@ -18,16 +18,15 @@ Ext.define('Niks.Apps.PokerGameConfig', {
 
     userIDs: [],            /** Only contains the reference to the user only so that we can get info from UserConfig */
     moderatorUser: null,    /** Full object for the moderator */
-    
-    statics: {
-        votingTime: '10'
-    },
 
     /** We know of three config types right now: MainConfig, IterationConfig, UserConfig */
     initialiseConfig: function(fieldText) {
         this[mainConfigName] = this._decodeConfig(mainConfigName, fieldText);
         this[userConfigName] = this._decodeConfig(userConfigName, fieldText);
         this[iterConfigName] = this._decodeConfig(iterConfigName, fieldText);
+        if (!this[mainConfigName].votingTime) {
+            this[mainConfigName].votingTime = votingTime;
+        }
     },
 
     getNamedConfig: function(name) {
@@ -200,7 +199,7 @@ Ext.define('Niks.Apps.PokerGameConfig', {
             fieldLabel: 'Voting Time (min:sec)',
             labelWidth: 200,
             margin: '10 0 10 20',
-            value: me[mainConfigName].votingTime  || Ext.Date.format(Ext.Date.parse( votingTime, "s"), "i:s"),
+            value: me[mainConfigName].votingTime  || votingTime,
             validator: function(value) {
                 if (Ext.Date.parse(value, "i:s") !== undefined) {
                     me[mainConfigName].votingTime = value;
