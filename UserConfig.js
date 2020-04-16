@@ -450,9 +450,9 @@ Ext.define('Niks.Apps.PokerUserConfig', {
     _createPanel: function(userOrModerator) {   //0 = user, !0 = mod
         var me = this;
         this.userOrModerator = userOrModerator;
-
         var page = me.configPanel = Ext.create('Ext.container.Container', {
             width: '100%',
+            height: me.app.getHeight(),
             layout: 'hbox',
             id: 'userPage',
             items: [
@@ -473,7 +473,7 @@ Ext.define('Niks.Apps.PokerUserConfig', {
                     xtype: 'container',
                     id: 'cardspaceparent',
                     width: '50%',
-//                    height: 800,
+                    height: '100%',
                     flex: 1,
                     cls:'clearpanel',
                     autoScroll: true

@@ -206,7 +206,13 @@ Ext.define('Niks.Apps.PlanningGame', {
             context: this.getContext().getDataContext(),
             autoLoad: true,
             limit: storyFetchLimit,
-            remoteSort: false,
+            sorters: [
+                {
+                    property: 'DragAndDropRank',
+                    dir: 'DESC'
+                }
+
+            ],
             fetch: ['FormattedID','TargetDate', 'Description', 'Discussion', 'LatestDiscussionAgeInMinutes','LastUpdateDate', 'Name', 'State', 'ScheduleState', 'Owner', 'PlanEstimate'],
             filters: filters,
             listeners: {

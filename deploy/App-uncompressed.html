@@ -215,7 +215,13 @@ Ext.define('Niks.Apps.PlanningGame', {
             context: this.getContext().getDataContext(),
             autoLoad: true,
             limit: storyFetchLimit,
-            remoteSort: false,
+            sorters: [
+                {
+                    property: 'DragAndDropRank',
+                    dir: 'DESC'
+                }
+
+            ],
             fetch: ['FormattedID','TargetDate', 'Description', 'Discussion', 'LatestDiscussionAgeInMinutes','LastUpdateDate', 'Name', 'State', 'ScheduleState', 'Owner', 'PlanEstimate'],
             filters: filters,
             listeners: {
@@ -586,7 +592,7 @@ const configSplitter2 = '|';
 
 const votingTime = '00:10';
 const userIdField = "ObjectID";
-const storyFetchLimit = 20;
+const storyFetchLimit = 50;
 
 /* Poker 'post' types */
 
@@ -1296,9 +1302,9 @@ Ext.define('Niks.Apps.PokerUserConfig', {
     _createPanel: function(userOrModerator) {   //0 = user, !0 = mod
         var me = this;
         this.userOrModerator = userOrModerator;
-
         var page = me.configPanel = Ext.create('Ext.container.Container', {
             width: '100%',
+            height: me.app.getHeight(),
             layout: 'hbox',
             id: 'userPage',
             items: [
@@ -1319,7 +1325,7 @@ Ext.define('Niks.Apps.PokerUserConfig', {
                     xtype: 'container',
                     id: 'cardspaceparent',
                     width: '50%',
-//                    height: 800,
+                    height: '100%',
                     flex: 1,
                     cls:'clearpanel',
                     autoScroll: true
