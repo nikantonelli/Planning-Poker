@@ -8,13 +8,19 @@ Webhooks is a future enhancements....sometime...
 
 The app needs a field on the Project artifact to be able to store the config. This will be used in the future to hold the results of the last planning session in case you want to go back and  revisit. Currently it is expecting a custom field called PlanningPokerConfig (aka c_PlanningPokerConfig). 
 
-When first starting in a project, the app will ask if you want to eb the moderator. Do this to start with, and then change it afterwards. The app uses the moderator setting to serve up the different pages.
+When first starting in a project, the app will ask if you want to be the moderator. Do this to start with, and then change it afterwards. The app uses the moderator setting to serve up the different pages. If the moderator is not available to reset this value, you can go to the custom field and delete/update the config entry directly. You have to have permissions to do this, though.
 
-The moderator would configure the game so that you are working to a particular iteration (current or future, NOT past!). The moderator can choose to include all stories, or all those with a 0 size and 'unset' ones. Zero size is not really an acceptable size, so should be revoted on.
+The moderator would configure the game so that you are working to a particular iteration (current or future, NOT past!). The moderator can choose to include all stories, or all those with a 0 size and 'unset' ones. Zero size is not really an acceptable size, so should be revoted on. Once decided on, the users can click on Refresh to get the stories up ready for voting.
 
 The moderator can choose a story to collate the votes on. The team members can vote on any story, but the moderator will only collate for the story they have chosen. Once collated, the moderator then can reveal them all at the same time. There is a timer implemented to help with this. The timer can be set through the config button on the moderator display.
 
 At the moment, the moderator cannot vote, just moderate.
+
+When a consensus is reached, the moderator can click on the FormattedID link and go to the story and update the size. There is also a 'Chat' link next to the FormattedID that will take you to the 'Discussions' tab in the user story details page.
+
+The team members can also make use of the link to have a look at more details. It will open in a separate tab so as not to disturb your voting app.
+
+There are probably some bugs in here, but it generally works!
 
 ## Moderator Screen
 ![alt text](https://github.com/nikantonelli/Planning-Poker/blob/master/Images/ModeratorScreen.png)
