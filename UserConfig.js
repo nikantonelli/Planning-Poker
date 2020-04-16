@@ -118,7 +118,6 @@ Ext.define('Niks.Apps.PokerUserConfig', {
     restart: function(iAmMod) {
         this.stories = [];
         this.destroyPanel();
-        debugger;
         this.getPanel(iAmMod)
         cardselected = null;
         if (iAmMod) {

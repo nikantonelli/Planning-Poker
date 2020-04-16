@@ -952,7 +952,6 @@ Ext.define('Niks.Apps.PokerUserConfig', {
     restart: function(iAmMod) {
         this.stories = [];
         this.destroyPanel();
-        debugger;
         this.getPanel(iAmMod)
         cardselected = null;
         if (iAmMod) {
@@ -1536,6 +1535,7 @@ Ext.define('Niks.Apps.PokerUserConfig', {
                 panel.add( {
                     xtype: 'rallyiterationcombobox',
                     margin: 40,
+                    hideTrigger: true,
                     store: me._iterationStore,
                     storeConfig: {
                         autoLoad: false

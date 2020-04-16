@@ -31,6 +31,7 @@ Ext.define('Niks.Apps.PokerIterationConfig', {
                 panel.add( {
                     xtype: 'rallyiterationcombobox',
                     margin: 40,
+                    hideTrigger: true,
                     store: me._iterationStore,
                     storeConfig: {
                         autoLoad: false
