@@ -191,6 +191,9 @@ Ext.define('Niks.Apps.PlanningGame', {
         var iAmMod = this._iAmModerator();
         this._UC.restart(iAmMod);
         var page = this._UC.getPanel(iAmMod);
+        if (this._iAmModerator()) {
+            this._GC.onlyUnSizedStories()? this._UC.disableIterationButton():this._UC.enableIterationButton();
+        }
         this._UC.loadStories(this._storyStore.getRecords());
         page.show();
     },
@@ -202,6 +205,7 @@ Ext.define('Niks.Apps.PlanningGame', {
             models: ['UserStory', 'Defect' ],
             context: this.getContext().getDataContext(),
             autoLoad: true,
+            limit: storyFetchLimit,
             remoteSort: false,
             fetch: ['FormattedID','TargetDate', 'Description', 'Discussion', 'LatestDiscussionAgeInMinutes','LastUpdateDate', 'Name', 'State', 'ScheduleState', 'Owner', 'PlanEstimate'],
             filters: filters,
@@ -228,12 +232,10 @@ Ext.define('Niks.Apps.PlanningGame', {
          */
         me._IC.getCurrentIteration().then({
             success: function(iteration) {
-                var filters = [{
-                    property: 'Iteration',
-                    value: iteration
-                }];
+                var filters = [];
 
                 if (me._GC.onlyUnSizedStories()) {
+                    
                     filters.push( Rally.data.wsapi.Filter.or(
                     [
                         {
@@ -249,6 +251,14 @@ Ext.define('Niks.Apps.PlanningGame', {
                     ]));
                     filters = Rally.data.wsapi.Filter.and(filters);
                 }
+                else {
+                    filters.push({
+                        property: 'Iteration',
+                        value: iteration
+                    });
+                }
+
+
         
                 me._getStoryStore(filters).then ({
                     success: function(store) {
@@ -325,7 +335,7 @@ Ext.define('Niks.Apps.PlanningGame', {
         //In case we come here after restart, destroy everything
 
         me._UC.destroyPanel();
-        
+
         //Check for required fields in this project node
 
         //Create config page and then pull config from project node if exists. If not, create.

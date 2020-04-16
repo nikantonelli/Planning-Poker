@@ -24,6 +24,7 @@ const configSplitter2 = '|';
 
 const votingTime = '00:10';
 const userIdField = "ObjectID";
+const storyFetchLimit = 20;
 
 /* Poker 'post' types */
 

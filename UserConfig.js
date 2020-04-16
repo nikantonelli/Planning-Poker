@@ -233,6 +233,14 @@ Ext.define('Niks.Apps.PokerUserConfig', {
         this._doVotes();
     },
 
+    disableIterationButton: function() {
+        this.getPanel().down('#iterationButton').disable();
+    },
+
+    enableIterationButton: function() {
+        this.getPanel().down('#iterationButton').enable();
+    },
+
     setVote: function(vote) {
         var storySelected = _.find( this.stories, function(story) {
             return cardSelected.story.get(cardIdField) === story.id;
@@ -293,7 +301,7 @@ Ext.define('Niks.Apps.PokerUserConfig', {
                 return result.get('User').ObjectID === user.get('ObjectID');
             });
             var answer = "None";
-            var timeAt = "";
+            var timeAt = "&nbsp";
             if (foundUserAnswer !== undefined) {
                 answer = foundUserAnswer.get('Text');
                 answer = this._revealVotes? answer.split(pokerMsg.votePosted+':')[1].split('<')[0]: '?';
@@ -477,6 +485,7 @@ Ext.define('Niks.Apps.PokerUserConfig', {
             page.down('#actions').add(
                 {
                     xtype: 'container',
+                    margin: '10 0 0 0',
                     cls: 'userpanel',
                     items: [
                         {
@@ -650,6 +659,7 @@ Ext.define('Niks.Apps.PokerUserConfig', {
             });
             page.down('#menu').add({
                 xtype: 'rallybutton',
+                id: 'iterationButton',
                 width: 100,
                 margin: 10,
                 text: 'Iteration',

@@ -200,6 +200,9 @@ Ext.define('Niks.Apps.PlanningGame', {
         var iAmMod = this._iAmModerator();
         this._UC.restart(iAmMod);
         var page = this._UC.getPanel(iAmMod);
+        if (this._iAmModerator()) {
+            this._GC.onlyUnSizedStories()? this._UC.disableIterationButton():this._UC.enableIterationButton();
+        }
         this._UC.loadStories(this._storyStore.getRecords());
         page.show();
     },
@@ -211,6 +214,7 @@ Ext.define('Niks.Apps.PlanningGame', {
             models: ['UserStory', 'Defect' ],
             context: this.getContext().getDataContext(),
             autoLoad: true,
+            limit: storyFetchLimit,
             remoteSort: false,
             fetch: ['FormattedID','TargetDate', 'Description', 'Discussion', 'LatestDiscussionAgeInMinutes','LastUpdateDate', 'Name', 'State', 'ScheduleState', 'Owner', 'PlanEstimate'],
             filters: filters,
@@ -237,12 +241,10 @@ Ext.define('Niks.Apps.PlanningGame', {
          */
         me._IC.getCurrentIteration().then({
             success: function(iteration) {
-                var filters = [{
-                    property: 'Iteration',
-                    value: iteration
-                }];
+                var filters = [];
 
                 if (me._GC.onlyUnSizedStories()) {
+                    
                     filters.push( Rally.data.wsapi.Filter.or(
                     [
                         {
@@ -258,6 +260,14 @@ Ext.define('Niks.Apps.PlanningGame', {
                     ]));
                     filters = Rally.data.wsapi.Filter.and(filters);
                 }
+                else {
+                    filters.push({
+                        property: 'Iteration',
+                        value: iteration
+                    });
+                }
+
+
         
                 me._getStoryStore(filters).then ({
                     success: function(store) {
@@ -334,7 +344,7 @@ Ext.define('Niks.Apps.PlanningGame', {
         //In case we come here after restart, destroy everything
 
         me._UC.destroyPanel();
-        
+
         //Check for required fields in this project node
 
         //Create config page and then pull config from project node if exists. If not, create.
@@ -576,6 +586,7 @@ const configSplitter2 = '|';
 
 const votingTime = '00:10';
 const userIdField = "ObjectID";
+const storyFetchLimit = 20;
 
 /* Poker 'post' types */
 
@@ -1068,6 +1079,14 @@ Ext.define('Niks.Apps.PokerUserConfig', {
         this._doVotes();
     },
 
+    disableIterationButton: function() {
+        this.getPanel().down('#iterationButton').disable();
+    },
+
+    enableIterationButton: function() {
+        this.getPanel().down('#iterationButton').enable();
+    },
+
     setVote: function(vote) {
         var storySelected = _.find( this.stories, function(story) {
             return cardSelected.story.get(cardIdField) === story.id;
@@ -1128,7 +1147,7 @@ Ext.define('Niks.Apps.PokerUserConfig', {
                 return result.get('User').ObjectID === user.get('ObjectID');
             });
             var answer = "None";
-            var timeAt = "";
+            var timeAt = "&nbsp";
             if (foundUserAnswer !== undefined) {
                 answer = foundUserAnswer.get('Text');
                 answer = this._revealVotes? answer.split(pokerMsg.votePosted+':')[1].split('<')[0]: '?';
@@ -1312,6 +1331,7 @@ Ext.define('Niks.Apps.PokerUserConfig', {
             page.down('#actions').add(
                 {
                     xtype: 'container',
+                    margin: '10 0 0 0',
                     cls: 'userpanel',
                     items: [
                         {
@@ -1485,6 +1505,7 @@ Ext.define('Niks.Apps.PokerUserConfig', {
             });
             page.down('#menu').add({
                 xtype: 'rallybutton',
+                id: 'iterationButton',
                 width: 100,
                 margin: 10,
                 text: 'Iteration',
@@ -1696,6 +1717,7 @@ Ext.define('Niks.Apps.PokerUserConfig', {
 .cardtext {
   color: black;
   font-size: 12px;
+  margin-left: 5px;
 }
 .cardSelected {
   border: 3px #00a9e0 solid;
