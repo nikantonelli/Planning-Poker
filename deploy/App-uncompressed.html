@@ -103,11 +103,7 @@ Ext.define('Niks.Apps.PlanningGame', {
             /** We may not do anything with the config at this point. We can catch team member changes on restart. So, really we only need 
              * to catch story changes
             */
-            me._getStoryChanges().then( {
-                success: function(results) {
-                    me._processStoryChanges(results);
-                }
-            });
+            me._startGame();
         },
         showConfig: function() {
             if (this._iAmModerator()){
@@ -334,6 +330,11 @@ Ext.define('Niks.Apps.PlanningGame', {
 
     _startGame: function() {
         var me = this;
+
+        //In case we come here after restart, destroy everything
+
+        me._UC.destroyPanel();
+        
         //Check for required fields in this project node
 
         //Create config page and then pull config from project node if exists. If not, create.
