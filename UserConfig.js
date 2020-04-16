@@ -237,7 +237,7 @@ Ext.define('Niks.Apps.PokerUserConfig', {
             return cardSelected.story.get(cardIdField) === story.id;
         });
         storySelected.vote = vote;
-        this.getPanel().down('#votemessage').update('You have chosen '+vote.toString());
+        this.getPanel().down('#votemessage').update('&larr; Vote '+vote.toString());
     },
 
     clearVote: function() {
@@ -450,24 +450,24 @@ Ext.define('Niks.Apps.PokerUserConfig', {
                 {
                     xtype: 'container',
                     id: 'menu',
-                    width: 100,
+                    width: 120,
                     margin: cardMargin,
                     cls:'clearpanel'
-                },
-                {
-                    xtype: 'container',
-                    id: 'cardspaceparent',
-                    width: '50%',
-                    height: 800,
-                    flex: 1,
-                    cls:'clearpanel',
-                    autoScroll: true
                 },
                 {
                     xtype: 'container',
                     id: 'actions',
                     width: 400,
                     cls:'clearpanel',
+                },
+                {
+                    xtype: 'container',
+                    id: 'cardspaceparent',
+                    width: '50%',
+//                    height: 800,
+                    flex: 1,
+                    cls:'clearpanel',
+                    autoScroll: true
                 }
             ]
         });
@@ -475,98 +475,111 @@ Ext.define('Niks.Apps.PokerUserConfig', {
         if (userOrModerator) {
             page.down('#actions').add(
                 {
-                    xtype: 'textfield',
-                    id: 'countdowntimer',
-                    width: '100%',
-                    height: 50,
-                    labelCls: 'cardtext',
-                    fieldCls: 'clearpanel timertext timerreset',
-                    fieldLabel: 'Countdown Timer',
-                    labelAlign: 'left',
-                    value: "00:00",
-                    readOnly: true,
-                    labelWidth: 120,
-                    margin: '5 0 5 10',
-                },
-                {
                     xtype: 'container',
-                    layout: 'hbox',
+                    cls: 'userpanel',
                     items: [
                         {
-                            xtype: 'rallybutton',
-                            text: 'Start',
-                            width: 100,
-                            handler: function() {
-                                if ( cardSelected === null ){
-                                    Rally.ui.notify.Notifier.showWarning({message: 'No story selected'});
-                                }else {
-                                    me._countdownTimer(me);
-                                }
-                            }
+                            xtype: 'textfield',
+                            id: 'countdowntimer',
+//                            width: '100%',
+                            height: 50,
+                            margin: 10,
+                            labelCls: 'cardtext',
+                            fieldCls: 'clearpanel timertext timerreset',
+                            fieldLabel: 'Countdown Timer',
+                            labelAlign: 'left',
+                            value: "00:00",
+                            readOnly: true,
+                            labelWidth: 120,
+        //                    margin: '5 0 5 10',
                         },
                         {
-                            xtype: 'rallybutton',
-                            text: 'Stop',
-                            width: 100,
-                            handler: function() {
-                                me._timerRunning = 0;
-                            }
-                        },
-                        {
-                            xtype: 'rallybutton',
-                            text: 'Reset',
-                            width: 100,
-                            handler: function() {
-                                me._configureTimer();
-                            }
-                        },
+                            xtype: 'container',
+                            layout: 'hbox',
+                            items: [
+                                {
+                                    xtype: 'rallybutton',
+                                    text: 'Start',
+                                    margin: 10,
+                                    width: 100,
+                                    handler: function() {
+                                        if ( cardSelected === null ){
+                                            Rally.ui.notify.Notifier.showWarning({message: 'No story selected'});
+                                        }else {
+                                            me._countdownTimer(me);
+                                        }
+                                    }
+                                },
+                                {
+                                    xtype: 'rallybutton',
+                                    text: 'Stop',
+                                    margin: 10,
+                                    width: 100,
+                                    handler: function() {
+                                        me._timerRunning = 0;
+                                    }
+                                },
+                                {
+                                    xtype: 'rallybutton',
+                                    text: 'Reset',
+                                    width: 100,
+                                    margin:10,
+                                    handler: function() {
+                                        me._configureTimer();
+                                    }
+                                },
 
-                    ]
-                },
-                {
-                    xtype: 'panel',
-                    id: 'votespanel',
-                    width: '100%',
-                    bodyCls: 'userpanel',
-                    margin: '10 0 10 0',
-                    layout: {
-                        type: 'table',
-                        columns: 3
-                    },
-                    defaults: {
-                        bodyStyle: 'padding:10px;border:none'
-                    }
-                },
-                {
-                    xtype: 'container',
-                    layout: 'hbox',
-                    items: [
+                            ]
+                        },
                         {
-                            xtype: 'rallybutton',
-                            text: 'Refresh Votes',
-                            width: 100,
-                            handler: function() {
-                                me._doVotes();
+                            xtype: 'panel',
+                            id: 'votespanel',
+                            width: '100%',
+                            bodyCls: 'userpanel',
+                            margin: '10 0 10 0',
+                            layout: {
+                                type: 'table',
+                                columns: 3
+                            },
+                            defaults: {
+                                bodyStyle: 'padding:10px;border:none'
                             }
                         },
                         {
-                            xtype: 'rallybutton',
-                            id: 'revealvotesbtn',
-                            text: 'Reveal Votes',
-                            width: 100,
-                            disabled: true,
-                            handler: function() {
-                                me._revealVotes = !me._revealVotes;
-                                me._setVotes(me._votes);
-                            }
-                        },
-                        {
-                            xtype: 'rallybutton',
-                            width: 100,
-                            text: 'Delete Votes',
-                            handler: function() {
-                                me.app.fireEvent('removeGame');
-                            }
+                            xtype: 'container',
+                            layout: 'hbox',
+                            items: [
+                                {
+                                    xtype: 'rallybutton',
+                                    text: 'Refresh Votes',
+                                    margin: 10,
+                                    width: 100,
+                                    handler: function() {
+                                        me._doVotes();
+                                    }
+                                },
+                                {
+                                    xtype: 'rallybutton',
+                                    id: 'revealvotesbtn',
+                                    text: 'Reveal Votes',
+                                    margin: 10,
+                                    width: 100,
+                                    disabled: true,
+                                    handler: function() {
+                                        me._revealVotes = !me._revealVotes;
+                                        me._setVotes(me._votes);
+                                    }
+                                },
+                                {
+                                    xtype: 'rallybutton',
+                                    margin: 10,
+                                    width: 100,
+                                    text: 'Delete Votes',
+                                    handler: function() {
+                                        me.app.fireEvent('removeGame');
+                                    }
+                                }
+                            ]
                         }
                     ]
                 }
@@ -578,9 +591,10 @@ Ext.define('Niks.Apps.PokerUserConfig', {
                 xtype: 'label',
                 id: 'votemessage',
                 grow: true,
+                margin: 10,
                 hideLabel: true,
                 readOnly: true,
-                html: '&larr; Choose an item',
+                html: 'Choose an item &rarr; ',
                 cls: 'clearpanel timertext'
             });
             var szsp = Ext.create('Ext.panel.Panel',
@@ -626,6 +640,7 @@ Ext.define('Niks.Apps.PokerUserConfig', {
             page.down('#menu').add({
                 xtype: 'rallybutton',
                 width: 100,
+                margin: 10,
                 text: 'Config',
                 margin: '10 10 0 10',
                 handler: function() {
@@ -635,6 +650,7 @@ Ext.define('Niks.Apps.PokerUserConfig', {
             page.down('#menu').add({
                 xtype: 'rallybutton',
                 width: 100,
+                margin: 10,
                 text: 'Iteration',
                 margin: '10 10 0 10',
                 handler: function() {
@@ -656,6 +672,7 @@ Ext.define('Niks.Apps.PokerUserConfig', {
         }
         page.down('#menu').add({
             xtype: 'rallybutton',
+            margin: 10,
             width: 100,
             text: 'Reload Game',
             margin: '10 10 0 10',
