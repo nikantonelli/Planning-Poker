@@ -115,10 +115,15 @@ Ext.define('Niks.Apps.PokerUserConfig', {
         }
     },
 
-    restart: function() {
+    restart: function(iAmMod) {
         this.stories = [];
-        this.getPanel().down('#cardspace').removeAll(false);
-        this._doVotes();
+        this.destroyPanel();
+        debugger;
+        this.getPanel(iAmMod)
+        cardselected = null;
+        if (iAmMod) {
+            this._doVotes();
+        }
     },
 
     //Stories can come as the form of the records in a store or the valueSeries

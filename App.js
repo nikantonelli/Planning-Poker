@@ -90,6 +90,7 @@ Ext.define('Niks.Apps.PlanningGame', {
         refresh: function() {
             var me = this;
             Rally.ui.notify.Notifier.show({message: 'Refreshing Game'});
+
             /** We may not do anything with the config at this point. We can catch team member changes on restart. So, really we only need 
              * to catch story changes
             */
@@ -152,7 +153,7 @@ Ext.define('Niks.Apps.PlanningGame', {
 
     _processStoryChanges: function() {
         //FIXME:
-        this._startGame();
+        this._reloadGame();
     },
 
     _getStoryChanges: function() {
@@ -192,7 +193,7 @@ Ext.define('Niks.Apps.PlanningGame', {
     _setUpUserScreen: function() {
         //Check for whether we are the moderator
         var iAmMod = this._iAmModerator();
-        this._UC.destroyPanel();
+        this._UC.restart(iAmMod);
         var page = this._UC.getPanel(iAmMod);
         this._UC.loadStories(this._storyStore.getRecords());
         page.show();
