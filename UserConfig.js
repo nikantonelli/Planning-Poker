@@ -119,7 +119,7 @@ Ext.define('Niks.Apps.PokerUserConfig', {
         this.stories = [];
         this.destroyPanel();
         this.getPanel(iAmMod)
-        cardselected = null;
+        cardSelected = null;
         if (iAmMod) {
             this._doVotes();
         }
@@ -137,7 +137,7 @@ Ext.define('Niks.Apps.PokerUserConfig', {
             _.each(stories, function(story) {
                 me._addCardToPage(story);
             });
-            //Add the moderators story cards
+            //Add the moderators story 
         }
     },
 
@@ -323,7 +323,7 @@ Ext.define('Niks.Apps.PokerUserConfig', {
 
         var deferred = Ext.create('Deft.Deferred');
         if (cardSelected === null) { 
-            Rally.ui.notify.Notifier.showWarning({message: 'No story selected'});
+            Rally.ui.notify.Notifier.showWarning({message: 'No item selected'});
             deferred.resolve([]);
             return deferred.promise;
         }
@@ -580,7 +580,7 @@ Ext.define('Niks.Apps.PokerUserConfig', {
                 grow: true,
                 hideLabel: true,
                 readOnly: true,
-                html: '&larr; Choose a story',
+                html: '&larr; Choose an item',
                 cls: 'clearpanel timertext'
             });
             var szsp = Ext.create('Ext.panel.Panel',
