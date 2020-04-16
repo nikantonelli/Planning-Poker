@@ -58,7 +58,7 @@ Ext.define('Niks.Apps.PlanningGame', {
                                         Deft.Promise.all(promises).then({
                                             success: function() {
                                                 Rally.ui.notify.Notifier.showWarning({ message: Ext.String.format(' {0} Records Deleted', recordCount)});
-                                                me._UC.restart();
+                                                me._reloadGame();
                                             }
                                         });
                                     }
