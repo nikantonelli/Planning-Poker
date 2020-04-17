@@ -47,7 +47,7 @@ Ext.define('Niks.Apps.PlanningGame', {
             //Remove all tagged conversation posts for stories in the project node and remove the contents of the Project custom field
             Ext.create('Rally.ui.dialog.ConfirmDialog', {
                 title: 'Clean up from game',
-                message: "Remove all game entries in this project (including game generated posts)?",
+                message: "Remove all game generated posts?",
                 confirmLabel: 'Yes',
                 listeners: {
                     confirm: function() {
