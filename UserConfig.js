@@ -296,6 +296,19 @@ Ext.define('Niks.Apps.PokerUserConfig', {
         else {
             showHideBtn.setText('Hide Votes');
         }
+        votesPanel.add( {
+            html: '<u>Team Member</u>',
+            width: 180
+        });
+        votesPanel.add( {
+            html: '<u>Vote Cast</u>',
+            width: 80
+        });
+        votesPanel.add( {
+            html: '<u>When</u>',
+            width: 140
+        });
+        
         _.each(me.users, function(user) {
             var foundUserAnswer = _.find(results, function(result) {
                 return result.get('User').ObjectID === user.get('ObjectID');
@@ -309,15 +322,12 @@ Ext.define('Niks.Apps.PokerUserConfig', {
             }
             votesPanel.add( {
                 html: user.get('_refObjectName'),
-                width:200
             });
             votesPanel.add( {
                 html: answer,
-                width: 50
             });
             votesPanel.add( {
                 html: timeAt,
-                width: 150
             });
             // Put this inside loop so that we don't have to check for null
             this.configPanel.down('#revealvotesbtn').enable();
