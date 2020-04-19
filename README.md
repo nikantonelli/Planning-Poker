@@ -6,7 +6,7 @@ PlanningGame
 One app that has a moderator screen and a dev team member screen. It uses ConversationPosts to send the votes back on a polling scheme right now. 
 Webhooks is a future enhancements....sometime...
 
-The app needs a field on the Project artifact to be able to store the config. This will be used in the future to hold the results of the last planning session in case you want to go back and  revisit. Currently it is expecting a string custom field called PlanningPokerConfig (aka c_PlanningPokerConfig). 
+The app needs a field on the Project artifact to be able to store the config. This will be used in the future to hold the results of the last planning session in case you want to go back and  revisit. Currently it is expecting a "Text" custom field called PlanningPokerConfig (aka c_PlanningPokerConfig). 
 
 When first starting in a project, the app will ask if you want to be the moderator. Do this to start with, and then change it afterwards. The app uses the moderator setting to serve up the different pages. If the moderator is not available to reset this value, you can go to the custom field and delete/update the config entry directly. You have to have permissions to do this, though.
 
