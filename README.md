@@ -15,6 +15,8 @@ The moderator would configure the game so that you are either working to a parti
 
 The moderator can choose a story to collate the votes on. The team members can vote on any story, but the moderator will only collate for the story they have chosen. Once collated, the moderator then can reveal them all at the same time. There is a timer implemented to help with this. The timer can be set through the config button on the moderator display.
 
+The app will use the most recent vote from a person. If the person votes more than once, then that is fine, the app just ignores the old ones. This means that you don't have to remember to clear out the old votes every time you do an in-session revote. You could even never delete the votes if you ever want to go back and look at what happeded during a session.
+
 At the moment, the moderator cannot vote, just moderate.
 
 When a consensus is reached, the moderator can click on the FormattedID link and go to the story and update the size. There is also a 'Chat' link next to the FormattedID that will take you to the 'Discussions' tab in the user story details page.
