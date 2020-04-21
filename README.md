@@ -3,8 +3,9 @@ PlanningGame
 
 ## Overview
 
-One app that has a moderator screen and a dev team member screen. It uses ConversationPosts to send the votes back on a polling scheme right now. 
-Webhooks is a future enhancements....sometime...
+One app that has a moderator screen and a dev team member screen. It uses ConversationPosts to send the votes back on a polling scheme right now.
+
+Webhooks is not appropriate for a Javascript app like this.
 
 The app needs a field on the Project artifact to be able to store the config. This will be used in the future to hold the results of the last planning session in case you want to go back and  revisit. Currently it is expecting a "Text" custom field called PlanningPokerConfig (aka c_PlanningPokerConfig). 
 
