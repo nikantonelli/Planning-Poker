@@ -11,9 +11,11 @@ Webhooks is not appropriate for a Javascript app like this.
 
 The app needs a field on the Project artifact to be able to store the config. This will be used in the future to hold the results of the last planning session in case you want to go back and  revisit. Currently it is expecting a "Text" custom field called PlanningPokerConfig (aka c_PlanningPokerConfig). 
 
+When first starting in a project, the app will ask if you want to be the moderator. Do this to start with, and then change it afterwards. 
+
 ## Using the app
 
-When first starting in a project, the app will ask if you want to be the moderator. Do this to start with, and then change it afterwards. The app uses the moderator setting to serve up the different pages. If the moderator is not available to reset this value, you can go to the custom field and delete/update the config entry directly. You have to have permissions to do this, though.
+The app uses the moderator setting to serve up the different pages. If the moderator is not available to reset this value, you can go to the custom field and delete/update the config entry directly. You have to have permissions to do this, though.
 
 There are two options for story selection:
 1. Those that are not sized (or have size of zero). To enable this, tick the box for "Fetch Unsized Only" on the moderators Config panel.
