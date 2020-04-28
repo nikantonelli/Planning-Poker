@@ -7,13 +7,22 @@ One app that has a moderator screen and a dev team member screen. It uses Conver
 
 Webhooks is not appropriate for a Javascript app like this.
 
+## Setup
+
 The app needs a field on the Project artifact to be able to store the config. This will be used in the future to hold the results of the last planning session in case you want to go back and  revisit. Currently it is expecting a "Text" custom field called PlanningPokerConfig (aka c_PlanningPokerConfig). 
+
+## Using the app
 
 When first starting in a project, the app will ask if you want to be the moderator. Do this to start with, and then change it afterwards. The app uses the moderator setting to serve up the different pages. If the moderator is not available to reset this value, you can go to the custom field and delete/update the config entry directly. You have to have permissions to do this, though.
 
-The moderator would configure the game so that you are either working to a particular iteration (current or future, NOT past!), or working on the unsized items in your team node. In my mind, zero size is not really an acceptable size, so should be revoted on or removed from the backlog. Once decided on, the users can click on Reload Game to get the next stories up ready for voting.
+There are two options for story selection:
+1. Those that are not sized (or have size of zero). To enable this, tick the box for "Fetch Unsized Only" on the moderators Config panel.
+2. Those in a particular iteration. Untick the above box and then use the Iteration selector in the moderators Iteration panel.
+The app respects the context you have, so if you select Project Scope Down/Project Scope Up, it will use those.
 
-The moderator can choose a story to collate the votes on. The team members can vote on any story, but the moderator will only collate for the story they have chosen. Once collated, the moderator then can reveal them all at the same time. There is a timer implemented to help with this. The timer can be set through the config button on the moderator display.
+In my mind, zero size is not really an acceptable size, so should be revoted on or removed from the backlog. Once all stories are decided on, the users can click on Reload Game to get the next stories up ready for voting.
+
+The moderator can choose a story to collate the votes on. The team members can vote on any story, but the moderator will only collate for the story that they have chosen. Once collated, the moderator then can reveal them all at the same time. There is a timer implemented to help with this. The timer can be set through the config button on the moderator display. It will do a vote refresh on timer expiration.
 
 The app will use the most recent vote from a person. If the person votes more than once, then that is fine, the app just ignores the old ones. This means that you don't have to remember to clear out the old votes every time you do an in-session revote. You could even never delete the votes if you ever want to go back and look at what happeded during a session.
 
