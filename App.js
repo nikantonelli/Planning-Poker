@@ -123,7 +123,7 @@ Ext.define('Niks.Apps.PlanningGame', {
                     type: 'ConversationPost',
                     success: function(model) {
                         var record = Ext.create(model, {
-                            Text: '<p>'+pokerMsg.votePosted+":"+me._voteSelected+'</p>',
+                            Text: '<p>'+pokerMsg.votePosted+":"+JSON.stringify(me._voteSelected)+'</p>',
                             Artifact: me._storySelected.story.get('_ref'),
                         });
                         record.save({
@@ -131,7 +131,7 @@ Ext.define('Niks.Apps.PlanningGame', {
                                 if (operation.wasSuccessful()) {
                                     Rally.ui.notify.Notifier.show({message: Ext.String.format('Vote Posted on {0} was {1}',
                                         me._storySelected.story.get('FormattedID'),
-                                        me._voteSelected)});
+                                        me.getSetting('useTShirt')?me._voteSelected.size: me.voteSelected.value)});
                                 }
                                 else {
                                     Rally.ui.notify.Notifier.showWarning({message: 'Failed to post vote. Please retry'});
@@ -192,8 +192,8 @@ Ext.define('Niks.Apps.PlanningGame', {
         this._UC.restart(iAmMod);
         var page = this._UC.getPanel(iAmMod);
         if (this._iAmModerator()) {
-            this._GC.onlyUnSizedStories()? this._UC.disableIterationButton():this._UC.enableIterationButton();
-        }
+            var noCompilerMessage = this._GC.getConfigValue('onlyUnsized')? this._UC.disableIterationButton():this._UC.enableIterationButton();
+        } 
         this._UC.loadStories(this._storyStore.getRecords());
         page.show();
     },
@@ -240,7 +240,7 @@ Ext.define('Niks.Apps.PlanningGame', {
             success: function(iteration) {
                 var filters = [];
 
-                if (me._GC.onlyUnSizedStories()) {
+                if (me._GC.getConfigValue('onlyUnsized')) {
                     
                     filters.push( Rally.data.wsapi.Filter.or(
                     [
@@ -287,7 +287,10 @@ Ext.define('Niks.Apps.PlanningGame', {
         var me = this;
 
         /** We need to load up the project specific config now.
-         * Firstly, we need the team members
+         */
+         this._UC.useTShirtSizing( this._GC.getConfigValue('useTShirt'));
+
+         /* Firstly, we need the team members
          */
         var record = this.projectStore.getRecords()[0];
         if ( record.get('TeamMembers').Count > 0) {

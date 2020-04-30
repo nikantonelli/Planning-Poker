@@ -22,7 +22,7 @@ Ext.define('Niks.Apps.PokerCard', {
         var btn = Ext.create('Rally.ui.Button',{
             margin: 10,
             disabled: true,
-            text: size.toString(),
+            text: (size.tshirt? size.size: size.value).toString(),
             cls: 'buttontext',
             width: this.width - 22,
             height: this.height - 22,
@@ -92,8 +92,33 @@ Ext.define('Niks.Apps.PokerUserConfig', {
     users: [],
     stories: [],
     id: userConfigName+'Panel',
-    valueSeries: [1,2,3,5,8,13,20,40,80],
-
+    valueSeries: [
+        { 
+            size: 'XS',
+            value: 1,
+        },{ 
+            size: 'S',
+            value: 2,
+        },{ 
+            size: 'M',
+            value: 3,
+        },{ 
+            size: 'L',
+            value: 5,
+        },{ 
+            size: 'XL',
+            value: 8,
+        },{ 
+            size: 'XXL',
+            value: 13,
+        },{ 
+            size: 'XXXL',
+            value: 20,
+        }, { 
+            size: 'Too Big',
+            value: 40,
+        }
+    ],
     getConfig: function() {
         return this[userConfigName];
     },
@@ -118,7 +143,7 @@ Ext.define('Niks.Apps.PokerUserConfig', {
     restart: function(iAmMod) {
         this.stories = [];
         this.destroyPanel();
-        this.getPanel(iAmMod)
+        this.getPanel(iAmMod);
         cardSelected = null;
         if (iAmMod) {
             this._doVotes();
@@ -241,12 +266,16 @@ Ext.define('Niks.Apps.PokerUserConfig', {
         this.getPanel().down('#iterationButton').enable();
     },
 
+    useTShirtSizing: function(tshirt) {
+        this[userConfigName].useTShirt = tshirt;
+    },
+
     setVote: function(vote) {
         var storySelected = _.find( this.stories, function(story) {
             return cardSelected.story.get(cardIdField) === story.id;
         });
         storySelected.vote = vote;
-        this.getPanel().down('#votemessage').update('&larr; Vote '+vote.toString());
+        this.getPanel().down('#votemessage').update('&larr; Vote '+(vote.tshirt?vote.size:vote.value).toString());
     },
 
     clearVote: function() {
@@ -298,11 +327,11 @@ Ext.define('Niks.Apps.PokerUserConfig', {
         }
         votesPanel.add( {
             html: '<u>Team Member</u>',
-            width: 180
+            width: 160
         });
         votesPanel.add( {
             html: '<u>Vote Cast</u>',
-            width: 80
+            width: 100
         });
         votesPanel.add( {
             html: '<u>When</u>',
@@ -313,11 +342,12 @@ Ext.define('Niks.Apps.PokerUserConfig', {
             var foundUserAnswer = _.find(results, function(result) {
                 return result.get('User').ObjectID === user.get('ObjectID');
             });
-            var answer = "None";
+            var answer = "&nbsp";
             var timeAt = "&nbsp";
             if (foundUserAnswer !== undefined) {
                 answer = foundUserAnswer.get('Text');
-                answer = this._revealVotes? answer.split(pokerMsg.votePosted+':')[1].split('<')[0]: '?';
+                answer =  JSON.parse(answer.split(pokerMsg.votePosted+':')[1].split('<')[0]);
+                answer = this._revealVotes?(answer.tshirt?(answer.size+ ' ('+answer.value+')'):answer.value).toString(): '?';
                 timeAt = foundUserAnswer.get('_CreatedAt');
             }
             votesPanel.add( {
@@ -636,6 +666,7 @@ Ext.define('Niks.Apps.PokerUserConfig', {
                     height: 80
                 });
                 szsp.add(card);
+                value.tshirt = me[userConfigName].useTShirt;
                 card.setVoteSize(value);
             });
         }
@@ -660,7 +691,6 @@ Ext.define('Niks.Apps.PokerUserConfig', {
             page.down('#menu').add({
                 xtype: 'rallybutton',
                 width: 100,
-                margin: 10,
                 text: 'Config',
                 margin: '10 10 0 10',
                 handler: function() {
@@ -671,7 +701,6 @@ Ext.define('Niks.Apps.PokerUserConfig', {
                 xtype: 'rallybutton',
                 id: 'iterationButton',
                 width: 100,
-                margin: 10,
                 text: 'Iteration',
                 margin: '10 10 0 10',
                 handler: function() {
@@ -693,7 +722,6 @@ Ext.define('Niks.Apps.PokerUserConfig', {
         }
         page.down('#menu').add({
             xtype: 'rallybutton',
-            margin: 10,
             width: 100,
             text: 'Reload Game',
             margin: '10 10 0 10',

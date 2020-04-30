@@ -104,8 +104,8 @@ Ext.define('Niks.Apps.PokerGameConfig', {
         return deferred.promise;
     },
 
-    onlyUnSizedStories: function() {
-        return this[mainConfigName].onlyUnsized;
+    getConfigValue: function(fieldName) {
+        return this[mainConfigName][fieldName];
     },
 
     _encodeMsg: function(msgType, msgText) {
@@ -188,6 +188,21 @@ Ext.define('Niks.Apps.PokerGameConfig', {
             listeners: {
                 change: function( tickbox, newV, oldV, opts) {
                     me[mainConfigName].onlyUnsized = newV;
+                    me.app.fireEvent(configChange);
+                }
+            }
+        });
+
+        panel.add( {
+            xtype: 'rallycheckboxfield',
+            fieldLabel: "Use T-Shirt sizing",
+            id: 'useTShirt',
+            value: me[mainConfigName].useTShirt,
+            labelWidth: 200,
+            margin: '10 0 10 20',
+            listeners: {
+                change: function( tickbox, newV, oldV, opts) {
+                    me[mainConfigName].useTShirt = newV;
                     me.app.fireEvent(configChange);
                 }
             }

@@ -72,7 +72,7 @@ Ext.define('Niks.Apps.PokerIterationConfig', {
                     success: function() {
                         deferred.resolve( me[iterConfigName].currentIteration);
                     }
-                })
+                });
             } else {
                 deferred.resolve( me[iterConfigName].currentIteration);   /* Resolve straightaway as we already have it. */
             }
