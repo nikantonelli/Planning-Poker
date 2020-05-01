@@ -1,6 +1,7 @@
 /** Event Passing */
 const modChange = 'moderatorchanged';
 const configChange = 'configchanged';
+const configSave = 'configsave';   //Save but don't change this game
 
 /** Configuration naming  */
 const mainConfigName = 'MainConfig';
@@ -32,3 +33,31 @@ const pokerMsg =
 { 
     votePosted: 'POKER_VOTE_POSTED',
 };
+
+const valueSeries = [
+        { 
+            size: 'XS',
+            value: 1,
+        },{ 
+            size: 'S',
+            value: 2,
+        },{ 
+            size: 'M',
+            value: 3,
+        },{ 
+            size: 'L',
+            value: 5,
+        },{ 
+            size: 'XL',
+            value: 8,
+        },{ 
+            size: 'XXL',
+            value: 13,
+        },{ 
+            size: 'XXXL',
+            value: 20,
+        }, { 
+            size: 'Too Big',
+            value: 40,
+        }
+    ];

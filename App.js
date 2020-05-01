@@ -240,6 +240,14 @@ Ext.define('Niks.Apps.PlanningGame', {
             success: function(iteration) {
                 var filters = [];
 
+                /** If the config has a Story Filter string, use that as well
+                 * 
+                 */
+                var storyFilter = me._GC.getConfigValue('storyFilter');
+                if (storyFilter) {
+                    filters.push(Rally.data.wsapi.Filter.fromQueryString(storyFilter));
+                }
+
                 if (me._GC.getConfigValue('onlyUnsized')) {
                     
                     filters.push( Rally.data.wsapi.Filter.or(
@@ -255,7 +263,6 @@ Ext.define('Niks.Apps.PlanningGame', {
                             value: 0
                         }
                     ]));
-                    filters = Rally.data.wsapi.Filter.and(filters);
                 }
                 else {
                     filters.push({
@@ -263,8 +270,7 @@ Ext.define('Niks.Apps.PlanningGame', {
                         value: iteration
                     });
                 }
-
-
+                filters = Rally.data.wsapi.Filter.and(filters);
         
                 me._getStoryStore(filters).then ({
                     success: function(store) {
@@ -290,30 +296,35 @@ Ext.define('Niks.Apps.PlanningGame', {
          */
          this._UC.useTShirtSizing( this._GC.getConfigValue('useTShirt'));
 
-         /* Firstly, we need the team members
-         */
-        var record = this.projectStore.getRecords()[0];
-        if ( record.get('TeamMembers').Count > 0) {
-            record.getCollection('TeamMembers').load( {
-                fetch: true,
-                callback: function( members, operation, success) {
-                    //Add all the team members to the GameConfig
-                    if (success === true) {
-                        Rally.ui.notify.Notifier.show({ message: "Team members loaded"});
-                        _.each(members, function(member) {
-                            me._UC.addUser(member);
-                        });
-                        me._kickOff();
-                    }
-                    else {
-                        console.log("Team members field unavailable");
-                    }
-                },
-                scope: me
-            });
+        if (this._iAmModerator()) {
+            /* Firstly, we need the team members
+            */
+            var record = this.projectStore.getRecords()[0];
+            if ( record.get('TeamMembers').Count > 0) {
+                record.getCollection('TeamMembers').load( {
+                    fetch: true,
+                    callback: function( members, operation, success) {
+                        //Add all the team members to the GameConfig
+                        if (success === true) {
+                            Rally.ui.notify.Notifier.show({ message: "Team members loaded"});
+                            _.each(members, function(member) {
+                                me._UC.addUser(member);
+                            });
+                            me._kickOff();
+                        }
+                        else {
+                            console.log("Team members field unavailable");
+                        }
+                    },
+                    scope: me
+                });
+            }
+            else {
+                Rally.ui.notify.Notifier.showWarning({ message: "Team members not configured"});
+            }
         }
         else {
-            Rally.ui.notify.Notifier.showWarning({ message: "Team members not configured"});
+            me._kickOff();
         }
 
     },

@@ -92,33 +92,7 @@ Ext.define('Niks.Apps.PokerUserConfig', {
     users: [],
     stories: [],
     id: userConfigName+'Panel',
-    valueSeries: [
-        { 
-            size: 'XS',
-            value: 1,
-        },{ 
-            size: 'S',
-            value: 2,
-        },{ 
-            size: 'M',
-            value: 3,
-        },{ 
-            size: 'L',
-            value: 5,
-        },{ 
-            size: 'XL',
-            value: 8,
-        },{ 
-            size: 'XXL',
-            value: 13,
-        },{ 
-            size: 'XXXL',
-            value: 20,
-        }, { 
-            size: 'Too Big',
-            value: 40,
-        }
-    ],
+    
     getConfig: function() {
         return this[userConfigName];
     },
@@ -660,7 +634,7 @@ Ext.define('Niks.Apps.PokerUserConfig', {
                 }
             );
             page.down('#actions').add(szsp);
-            _.each(me.valueSeries, function(value) {
+            _.each(valueSeries, function(value) {
                 var card = Ext.create('Niks.Apps.PokerCard', {
                     width: 150,
                     height: 80

@@ -22,6 +22,8 @@ There are two options for story selection:
 2. Those in a particular iteration. Untick the above box and then use the Iteration selector in the moderators Iteration panel.
 The app respects the context you have, so if you select Project Scope Down/Project Scope Up, it will use those.
 
+Added recently is the ability to add a Query to do extra filtering. This is not really a good idea, but a customer asked for it, so there it is.
+
 In my mind, zero size is not really an acceptable size, so should be revoted on or removed from the backlog. Once all stories are decided on, the users can click on Reload Game to get the next stories up ready for voting.
 
 The moderator can choose a story to collate the votes on. The team members can vote on any story, but the moderator will only collate for the story that they have chosen. Once collated, the moderator then can reveal them all at the same time. There is a timer implemented to help with this. The timer can be set through the config button on the moderator display. It will do a vote refresh on timer expiration.

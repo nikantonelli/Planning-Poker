@@ -218,12 +218,36 @@ Ext.define('Niks.Apps.PokerGameConfig', {
             validator: function(value) {
                 if (Ext.Date.parse(value, "i:s") !== undefined) {
                     me[mainConfigName].votingTime = value;
-                    me.app.fireEvent('configsave');   //Save but don't change this game
+                    me.app.fireEvent(configSave);   //Save but don't change this game
                     return true;
                 }
                 return false;
             }
             
+        });
+        panel.add( {
+            xtype: 'textarea',
+            fieldLabel: 'Story Filter',
+            name: 'query',
+            cls: 'query-field',
+            labelAlign: 'top',
+            width: 360,
+            value: me[mainConfigName].storyFilter,
+            margin: '0 20 0 20',
+            validateOnBlur: true,
+            validateOnChange: false,
+            validator: function(value) {
+                try {
+                    if (value) {
+                        Rally.data.wsapi.Filter.fromQueryString(value);
+                        me[mainConfigName].storyFilter = value;
+                        me.app.fireEvent(configChange);
+                    }
+                    return true;
+                } catch (e) {
+                    return e.message;
+                }
+            }        
         });
 
         this.configPanel = panel;
