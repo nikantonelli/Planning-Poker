@@ -15,16 +15,18 @@ When first starting in a project, the app will ask if you want to be the moderat
 
 ## Using the app
 
-The app uses the moderator setting to serve up the different pages. If the moderator is not available to reset this value, you can go to the custom field and delete/update the config entry directly. You have to have permissions to do this, though.
+The app uses the moderator setting to serve up the different pages. If the moderator is not available to reset this value, you can go to the projects custom field and delete/update the config entry directly. You have to have permissions to do this, though.
 
 There are two options for story selection:
 1. Those that are not sized (or have size of zero). To enable this, tick the box for "Fetch Unsized Only" on the moderators Config panel.
 2. Those in a particular iteration. Untick the above box and then use the Iteration selector in the moderators Iteration panel.
 The app respects the context you have, so if you select Project Scope Down/Project Scope Up, it will use those.
 
-Added recently is the ability to add a Query to do extra filtering. This is not really a good idea, but a customer asked for it, so there it is.
+Added recently is the ability to add a Query to do extra filtering. This is not really a good idea, but a customer asked for it, so there it is. I think it would be better to prioritise your backlog and work from the top every time.
 
 In my mind, zero size is not really an acceptable size, so should be revoted on or removed from the backlog. Once all stories are decided on, the users can click on Reload Game to get the next stories up ready for voting.
+
+The moderator can set whether the Team Members only get to see T-Shirt sizing via the Config panel. The moderator panel always shows the value, but will also show the T-shirt size the team member has chosen. The T-Shirt sizes are currently hardcoded into the app, but you can change them yourself - just look for the string "valueSeries" in the html that you loaded in. If you use the App-uncompressed.html file, it will be easy to read.
 
 The moderator can choose a story to collate the votes on. The team members can vote on any story, but the moderator will only collate for the story that they have chosen. Once collated, the moderator then can reveal them all at the same time. There is a timer implemented to help with this. The timer can be set through the config button on the moderator display. It will do a vote refresh on timer expiration.
 
