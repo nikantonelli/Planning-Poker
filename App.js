@@ -223,6 +223,7 @@ Ext.define('Niks.Apps.PlanningGame', {
                         deferred.resolve(store);
                     }else {
                         Rally.ui.notify.Notifier.showWarning({message: "No stories found in this iteration/project node"});
+                        deferred.reject(null);
                     }
                 },
                 scope: me
@@ -278,7 +279,7 @@ Ext.define('Niks.Apps.PlanningGame', {
                         me._setUpUserScreen();
                     },
                     failure: function(e) {
-                        console.log("Failed to load stories", e);
+                        console.log("Fatal failure to load stories. Clean out the project config and start again", e);
                     }
                 });
             },

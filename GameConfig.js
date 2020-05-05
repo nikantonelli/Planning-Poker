@@ -241,8 +241,8 @@ Ext.define('Niks.Apps.PokerGameConfig', {
                     if (value) {
                         Rally.data.wsapi.Filter.fromQueryString(value);
                         me[mainConfigName].storyFilter = value;
-                        me.app.fireEvent(configChange);
                     }
+                    me.app.fireEvent(configChange);
                     return true;
                 } catch (e) {
                     return e.message;
