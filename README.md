@@ -9,7 +9,7 @@ Webhooks is not appropriate for a Javascript app like this.
 
 ## Setup
 
-The app needs a field on the Project artifact to be able to store the config. This will be used in the future to hold the results of the last planning session in case you want to go back and  revisit. Currently it is expecting a "Text" custom field called PlanningPokerConfig (aka c_PlanningPokerConfig). 
+The app needs a field on the Project artifact (do NOT make it on the UserStory - it won't work!) to be able to store the config. This will be used in the future to hold the results of the last planning session in case you want to go back and  revisit. Currently it is expecting a "Text" custom field called PlanningPokerConfig (aka c_PlanningPokerConfig). 
 
 When first starting in a project, the app will ask if you want to be the moderator. Do this to start with, and then change it afterwards. 
 
