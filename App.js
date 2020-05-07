@@ -389,6 +389,7 @@ Ext.define('Niks.Apps.PlanningGame', {
                 });
             },
             failure: function(e) {
+                Rally.ui.notify.Notifier.showWarning({ message: e});
                 console.log(e);
             },
             scope: me
@@ -427,7 +428,8 @@ Ext.define('Niks.Apps.PlanningGame', {
             fetch: true,
             success: function(model) {
                 //Add any prechecks here
-                if (model.hasField(me.configFieldName)) {
+                debugger;
+                if (model.hasField(me.configFieldName) && (model.getField(me.configFieldName).type.type === 'string') ) {
                     deferred.resolve(model);
                 } else {
                     //Here, we need to ask if they want to set up the new field (need to be workspace admin)
