@@ -7,15 +7,7 @@
 
     <script type="text/javascript">
         Rally.onReady(function () {
-                var storyLoadTime = null;
-
-Ext.define('Niks.Apps.TeamPicker', {
-    constructor: function() {
-        this.callParent();
-    }
-});
-
-Ext.define('Niks.Apps.PlanningGame', {
+                Ext.define('Niks.Apps.PlanningGame', {
     extend: 'Rally.app.App',
     componentCls: 'app',
     id: 'pokerApp',
@@ -140,7 +132,8 @@ Ext.define('Niks.Apps.PlanningGame', {
                                 if (operation.wasSuccessful()) {
                                     Rally.ui.notify.Notifier.show({message: Ext.String.format('Vote Posted on {0} was {1}',
                                         me._storySelected.story.get('FormattedID'),
-                                        me.getSetting('useTShirt')?me._voteSelected.size: me.voteSelected.value)});
+                                        me.getSetting('useTShirt')?me._voteSelected.size: me._voteSelected.value)});
+                                    me._storySelected.postedVote();
                                 }
                                 else {
                                     Rally.ui.notify.Notifier.showWarning({message: 'Failed to post vote. Please retry'});
@@ -159,27 +152,6 @@ Ext.define('Niks.Apps.PlanningGame', {
     _processStoryChanges: function() {
         //FIXME:
         this._reloadGame();
-    },
-
-    _getStoryChanges: function() {
-        var deferred = Ext.create('Deft.Deferred');
-        var filters = [
-            {
-                property: 'LastUpdateDate',
-                operator: '>',
-                value: storyLoadTime, 
-            }
-        ];
-
-        this._getStoryStore(filters).then({
-            success: function(store) {
-                deferred.resolve(store.getRecords());
-            },
-            failure: function(e) {
-                console.log("Failed to load story changes", e);
-            }
-        });
-        return deferred.promise;
     },
 
     _reloadGame: function() {
@@ -932,13 +904,7 @@ Ext.define('Niks.Apps.PokerGameConfig', {
         return panel;
     },
 });
-                /** Something to hold the current config of the user during this session
- * 
- */
-
-var cardSelected = null;
-
-Ext.define('Niks.Apps.PokerCard', {
+                Ext.define('Niks.Apps.PokerCard', {
     extend: Ext.panel.Panel,
     margin: cardMargin,
     layout: {
@@ -967,25 +933,49 @@ Ext.define('Niks.Apps.PokerCard', {
         this.add( btn);
     },
 
+    postedVote: function() {
+        this.voted = this.vote;
+        this.setVoteString();
+    },
+
+    setVoteString: function (vote) {
+        if (vote && (vote !== this.vote)) { 
+            this.vote = vote;
+        }
+        if ( (vote && (vote !== this.vote)) ||
+            (this.vote !== this.voted)) 
+        {
+            this.tf.removeCls('definedfield');
+            this.tf.addCls('erroredfield');
+        }
+        else {
+            this.tf.addCls('definedfield');
+            this.tf.removeCls('erroredfield');
+        }
+        var ls = this.story.get(cardSizeField);
+        ls = (ls === null)?(ls === 0?'set to zero':'not set'):ls.toString();
+        this.tf.update(Ext.String.format('Current Size: {0} {1} {2}',
+            ls, 
+            this.vote?" - You chose: "+(this.vote.tshirt? this.vote.size: this.vote.value):'',
+            this.voted?' and have voted: '+(this.voted.tshirt? this.voted.size: this.voted.value) :''));
+    },
+
     applyStory: function(story) {
         var me = this;
         this.story = story;
-        var ls = story.get(cardSizeField);
-        var description = story.get('Description');
-        description = description.length?description:'<p>Description field Empty</p><p><b>Please go to Artefact and enter a Description of the Required Effort</b></p>';
-        ls = (ls === null)?(ls === 0?'set to zero':'not set'):ls.toString();
 
-
-        var tf = Ext.create('Ext.form.field.Text', {
+        this.tf = Ext.create('Ext.form.field.Text', {
                 xtype: 'textfield',
                 id: 'sizeText'+story.get(cardIdField),
                 width: cardWidth - 30,
                 margin: '5 0 5 10',
                 cls: 'definedfield'
             });
-        this.add( tf );
-        tf.update(Ext.String.format('Current Size: {0}',ls));
+        this.add( this.tf );
+        this.setVoteString();
 
+        var description = story.get('Description');
+        description = description.length?description:'<p>Description field Empty</p><p><b>Please go to Artefact and enter a Description of the Required Effort</b></p>';
         var taf = Ext.create('Ext.form.Label',{
                 margin: cardMargin,
                 forId: 'sizeText'+story.get(cardIdField),
@@ -1020,6 +1010,11 @@ Ext.define('Niks.Apps.PokerCard', {
     },
 });
 
+                /** Something to hold the current config of the user during this session
+ * 
+ */
+
+var cardSelected = null;
 
 Ext.define('Niks.Apps.PokerUserConfig', {
     extend: Niks.Apps.Panel,
@@ -1058,33 +1053,18 @@ Ext.define('Niks.Apps.PokerUserConfig', {
         }
     },
 
-    //Stories can come as the form of the records in a store or the valueSeries
+    //Stories can come as the form of the records in a store
     loadStories: function( stories ) {
         var me = this;
         if (me.getPanel().down('#cardspace')) { me.getPanel().down('#cardspace').removeAll(false);}
         me.stories = [];
-        if (stories === null) {
-            //Add the cards from the valueSeries because we are a standard user
-        }
-        else {
-            _.each(stories, function(story) {
-                me._addCardToPage(story);
-            });
-            //Add the moderators story 
-        }
+        _.each(stories, function(story) {
+            me._addCardToPage(story);
+        });
     },
 
     _addCardToPage: function(story) {
-
-        if ( _.find(this.stories, function(savedStory) {
-                return story.get(cardIdField) === savedStory.id;
-        })) {
-            return;
-        }
-        this.stories.push({ id: story.get(cardIdField), vote: null});
         var page = this.getPanel();
-
-//        var subpage = this.userOrModerator? 'discussion':'details';
        var cs = page.down('#cardspace');
 
         var card = Ext.create('Niks.Apps.PokerCard', {
@@ -1104,6 +1084,7 @@ Ext.define('Niks.Apps.PokerUserConfig', {
         });
         cs.add(card);
         card.setStory(story);
+        this.stories.push( card );
     },
 
     /** Mainconfig comes over from the app so that we can set the time up 
@@ -1141,7 +1122,7 @@ Ext.define('Niks.Apps.PokerUserConfig', {
         else {
             // Set the votemessage field if we already have chosen on this one.
             var foundStory = _.find(this.stories, function(savedStory) {
-                return card.story.get(cardIdField) === savedStory.id;
+                return card.story.get(cardIdField) === savedStory.story.get(cardIdField);
             });
             if ( foundStory  && foundStory.vote) {
                 me.setVote(foundStory.vote);
@@ -1179,10 +1160,11 @@ Ext.define('Niks.Apps.PokerUserConfig', {
     },
 
     setVote: function(vote) {
-        var storySelected = _.find( this.stories, function(story) {
-            return cardSelected.story.get(cardIdField) === story.id;
+        var storySelected = _.find( this.stories, function(card) {
+            return cardSelected.story.get(cardIdField) === card.story.get(cardIdField);
         });
-        storySelected.vote = vote;
+        storySelected.setVoteString(vote);
+        //debugger;
         this.getPanel().down('#votemessage').update('&larr; Vote '+(vote.tshirt?vote.size:vote.value).toString());
     },
 
@@ -1391,8 +1373,6 @@ Ext.define('Niks.Apps.PokerUserConfig', {
         this.configPanel.down('#countdowntimer').setValue(minutes+":"+seconds);
 
     },
-
-    _userVoteSelected: null,
 
     //Singleton that never dies..... hopefully....
     _createPanel: function(userOrModerator) {   //0 = user, !0 = mod
@@ -1800,6 +1780,11 @@ Ext.define('Niks.Apps.PokerUserConfig', {
 .definedfield {
   border-style: none none solid none;
   border-color: black;
+  border-width: 1px;
+}
+.erroredfield {
+  border-style: none none solid none;
+  border-color: red;
   border-width: 1px;
 }
 .timertext {

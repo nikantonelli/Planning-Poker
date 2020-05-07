@@ -20,6 +20,12 @@
     border-width: 1px;
 }
 
+.erroredfield {
+    border-style: none none solid none;
+    border-color: red;
+    border-width: 1px;
+}
+
 .timertext {
     font-size: 36px;
 }

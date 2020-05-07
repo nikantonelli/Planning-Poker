@@ -4,89 +4,6 @@
 
 var cardSelected = null;
 
-Ext.define('Niks.Apps.PokerCard', {
-    extend: Ext.panel.Panel,
-    margin: cardMargin,
-    layout: {
-        type: 'vbox',
-        align: 'left'
-    },
-    autoScroll: true,
-    config: {
-        story: null,
-        voteSize: null
-    },
-    applyVoteSize: function(size) {
-        this.voteSize = size;
-        var me = this;
-        var btn = Ext.create('Rally.ui.Button',{
-            margin: 10,
-            disabled: true,
-            text: (size.tshirt? size.size: size.value).toString(),
-            cls: 'buttontext',
-            width: this.width - 22,
-            height: this.height - 22,
-            handler : function() {
-                this.up('#pokerApp').fireEvent('voteselected',me.voteSize);
-            }
-        });
-        this.add( btn);
-    },
-
-    applyStory: function(story) {
-        var me = this;
-        this.story = story;
-        var ls = story.get(cardSizeField);
-        var description = story.get('Description');
-        description = description.length?description:'<p>Description field Empty</p><p><b>Please go to Artefact and enter a Description of the Required Effort</b></p>';
-        ls = (ls === null)?(ls === 0?'set to zero':'not set'):ls.toString();
-
-
-        var tf = Ext.create('Ext.form.field.Text', {
-                xtype: 'textfield',
-                id: 'sizeText'+story.get(cardIdField),
-                width: cardWidth - 30,
-                margin: '5 0 5 10',
-                cls: 'definedfield'
-            });
-        this.add( tf );
-        tf.update(Ext.String.format('Current Size: {0}',ls));
-
-        var taf = Ext.create('Ext.form.Label',{
-                margin: cardMargin,
-                forId: 'sizeText'+story.get(cardIdField),
-                width: cardWidth - 40,
-                grow: true,
-                hideLabel: true,
-                readOnly: true,
-                autoScroll: true,
-                html: description
-            }
-        );
-        this.add(taf);
-
-        this.getEl().on('click', function(evt, target) {
-            if (target.nodeName === "A") {
-                return;
-            }
-            
-            if (cardSelected === this) {
-                this.removeCls('cardSelected');
-                cardSelected  = null;
-            }
-            else {
-                this.addCls('cardSelected');
-                if (cardSelected !== null)  {
-                    cardSelected.removeCls('cardSelected');
-                }
-                cardSelected = this;
-            }
-            this.up('#pokerApp').fireEvent('cardselected',this);
-        }, me);
-    },
-});
-
-
 Ext.define('Niks.Apps.PokerUserConfig', {
     extend: Niks.Apps.Panel,
     users: [],
@@ -124,33 +41,18 @@ Ext.define('Niks.Apps.PokerUserConfig', {
         }
     },
 
-    //Stories can come as the form of the records in a store or the valueSeries
+    //Stories can come as the form of the records in a store
     loadStories: function( stories ) {
         var me = this;
         if (me.getPanel().down('#cardspace')) { me.getPanel().down('#cardspace').removeAll(false);}
         me.stories = [];
-        if (stories === null) {
-            //Add the cards from the valueSeries because we are a standard user
-        }
-        else {
-            _.each(stories, function(story) {
-                me._addCardToPage(story);
-            });
-            //Add the moderators story 
-        }
+        _.each(stories, function(story) {
+            me._addCardToPage(story);
+        });
     },
 
     _addCardToPage: function(story) {
-
-        if ( _.find(this.stories, function(savedStory) {
-                return story.get(cardIdField) === savedStory.id;
-        })) {
-            return;
-        }
-        this.stories.push({ id: story.get(cardIdField), vote: null});
         var page = this.getPanel();
-
-//        var subpage = this.userOrModerator? 'discussion':'details';
        var cs = page.down('#cardspace');
 
         var card = Ext.create('Niks.Apps.PokerCard', {
@@ -170,6 +72,7 @@ Ext.define('Niks.Apps.PokerUserConfig', {
         });
         cs.add(card);
         card.setStory(story);
+        this.stories.push( card );
     },
 
     /** Mainconfig comes over from the app so that we can set the time up 
@@ -207,7 +110,7 @@ Ext.define('Niks.Apps.PokerUserConfig', {
         else {
             // Set the votemessage field if we already have chosen on this one.
             var foundStory = _.find(this.stories, function(savedStory) {
-                return card.story.get(cardIdField) === savedStory.id;
+                return card.story.get(cardIdField) === savedStory.story.get(cardIdField);
             });
             if ( foundStory  && foundStory.vote) {
                 me.setVote(foundStory.vote);
@@ -245,10 +148,11 @@ Ext.define('Niks.Apps.PokerUserConfig', {
     },
 
     setVote: function(vote) {
-        var storySelected = _.find( this.stories, function(story) {
-            return cardSelected.story.get(cardIdField) === story.id;
+        var storySelected = _.find( this.stories, function(card) {
+            return cardSelected.story.get(cardIdField) === card.story.get(cardIdField);
         });
-        storySelected.vote = vote;
+        storySelected.setVoteString(vote);
+        //debugger;
         this.getPanel().down('#votemessage').update('&larr; Vote '+(vote.tshirt?vote.size:vote.value).toString());
     },
 
@@ -457,8 +361,6 @@ Ext.define('Niks.Apps.PokerUserConfig', {
         this.configPanel.down('#countdowntimer').setValue(minutes+":"+seconds);
 
     },
-
-    _userVoteSelected: null,
 
     //Singleton that never dies..... hopefully....
     _createPanel: function(userOrModerator) {   //0 = user, !0 = mod

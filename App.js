@@ -1,11 +1,3 @@
-var storyLoadTime = null;
-
-Ext.define('Niks.Apps.TeamPicker', {
-    constructor: function() {
-        this.callParent();
-    }
-});
-
 Ext.define('Niks.Apps.PlanningGame', {
     extend: 'Rally.app.App',
     componentCls: 'app',
@@ -131,7 +123,8 @@ Ext.define('Niks.Apps.PlanningGame', {
                                 if (operation.wasSuccessful()) {
                                     Rally.ui.notify.Notifier.show({message: Ext.String.format('Vote Posted on {0} was {1}',
                                         me._storySelected.story.get('FormattedID'),
-                                        me.getSetting('useTShirt')?me._voteSelected.size: me.voteSelected.value)});
+                                        me.getSetting('useTShirt')?me._voteSelected.size: me._voteSelected.value)});
+                                    me._storySelected.postedVote();
                                 }
                                 else {
                                     Rally.ui.notify.Notifier.showWarning({message: 'Failed to post vote. Please retry'});
@@ -150,27 +143,6 @@ Ext.define('Niks.Apps.PlanningGame', {
     _processStoryChanges: function() {
         //FIXME:
         this._reloadGame();
-    },
-
-    _getStoryChanges: function() {
-        var deferred = Ext.create('Deft.Deferred');
-        var filters = [
-            {
-                property: 'LastUpdateDate',
-                operator: '>',
-                value: storyLoadTime, 
-            }
-        ];
-
-        this._getStoryStore(filters).then({
-            success: function(store) {
-                deferred.resolve(store.getRecords());
-            },
-            failure: function(e) {
-                console.log("Failed to load story changes", e);
-            }
-        });
-        return deferred.promise;
     },
 
     _reloadGame: function() {
