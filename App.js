@@ -382,6 +382,7 @@ Ext.define('Niks.Apps.PlanningGame', {
                         }
                     },
                     failure: function(e) {
+                        Rally.ui.notify.Notifier.showWarning({ message: e});
                         console.log(e);
                     },
                     scope: me
@@ -430,7 +431,7 @@ Ext.define('Niks.Apps.PlanningGame', {
                     deferred.resolve(model);
                 } else {
                     //Here, we need to ask if they want to set up the new field (need to be workspace admin)
-                    deferred.reject("Correct Config not available");
+                    deferred.reject("Correct Config on Project artefact not available");
                 }
             },
             failure: function() {
