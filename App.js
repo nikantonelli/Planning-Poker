@@ -276,6 +276,12 @@ Ext.define('Niks.Apps.PlanningGame', {
             if ( record.get('TeamMembers').Count > 0) {
                 record.getCollection('TeamMembers').load( {
                     fetch: true,
+                    filters: [
+                        {
+                            property: 'Disabled',
+                            value: false
+                        }
+                    ],
                     callback: function( members, operation, success) {
                         //Add all the team members to the GameConfig
                         if (success === true) {
