@@ -37,7 +37,7 @@ The moderator can set whether the Team Members only get to see T-Shirt sizing vi
 
 The moderator can choose a story to collate the votes on. The team members can vote on any story, but the moderator will only collate for the story that they have chosen. Once collated, the moderator then can reveal them all at the same time. There is a timer implemented to help with this. The timer can be set through the config button on the moderator display. It will do a vote refresh on timer expiration.
 
-The app will use the most recent vote from a person. If the person votes more than once, then that is fine, the app just ignores the old ones. This means that you don't have to remember to clear out the old votes every time you do an in-session revote. You could even never delete the votes if you ever want to go back and look at what happeded during a session.
+The app will use the most recent vote from a person. If the person votes more than once, then that is fine, the app just ignores the old ones. This means that you don't have to remember to clear out the old votes every time you do an in-session revote. You could even never delete the votes if you ever want to go back and look at what happened during a session.
 
 At the moment, the moderator cannot vote, just moderate. If someone wants to do both right now, then you will need to have two logins, a moderator and a team member, and do each one from a different browser, e.g. Safari and Chrome, or Firefox and Chrome. This is due to the way the browsers cache/share the information that the login uses.
 
