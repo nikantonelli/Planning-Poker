@@ -286,7 +286,7 @@ Ext.define('Niks.Apps.PokerGameConfig', {
 
         panel.add( {
             xtype: 'textarea',
-            fieldLabel: 'Story Filter',
+            fieldLabel: 'Artefact Filter',
             name: 'query',
             cls: 'query-field',
             labelAlign: 'top',
