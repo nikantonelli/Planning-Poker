@@ -175,7 +175,9 @@
         if (this._iAmModerator()) {
             var noCompilerMessage = this._GC.getConfigValue('allowIterationSelector')? this._UC.enableIterationButton():this._UC.disableIterationButton();
         } 
-        this._UC.loadStories(this._storyStore.getRecords());
+        if ( this._storyStore) {
+            this._UC.loadStories(this._storyStore.getRecords());
+        }
         page.show();
     },
 
@@ -258,11 +260,12 @@
                 me._getStoryStore(filters).then ({
                     success: function(store) {
                         me._storyStore = store;
-                        me._setUpUserScreen();
                     },
                     failure: function(e) {
                         console.log("Fatal failure to load stories. Clean out the project config and start again", e);
                     }
+                }).always( function() {
+                    me._setUpUserScreen();
                 });
             },
             failure: function(e) {
