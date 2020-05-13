@@ -27,6 +27,10 @@ Ext.define('Niks.Apps.PokerGameConfig', {
         if (!this[mainConfigName].votingTime) {
             this[mainConfigName].votingTime = votingTime;
         }
+        
+        if ((!this[mainConfigName].artefactTypes) || !this[mainConfigName].artefactTypes.length){
+            this[mainConfigName].artefactTypes = ['UserStory', 'Defect'];
+        }
     },
 
     getNamedConfig: function(name) {
@@ -129,6 +133,7 @@ Ext.define('Niks.Apps.PokerGameConfig', {
         var panel = Ext.create('Ext.panel.Panel', {
 //        var panel = Ext.create('Ext.container.Container', {
             floating: true,
+            draggable: true,
             width: 400,
             height: 400,
             baseCls: 'configPanel',
@@ -225,6 +230,60 @@ Ext.define('Niks.Apps.PokerGameConfig', {
             }
             
         });
+
+        panel.add( {
+            xtype: 'container',
+            margin: '10 0 10 20',
+            layout: 'hbox',
+            items: [
+                {
+                    xtype: 'rallycheckboxfield',
+                    id: 'selectStories',
+                    fieldLabel: 'Stories',
+                    margin: '0 10 0 0',
+                    listeners: {
+                        change: function(item, setting) {
+                            if (!setting) {
+                                me[mainConfigName].artefactTypes = _.without(me[mainConfigName].artefactTypes, 'UserStory');
+                                if ( me.getPanel().down('#selectDefects').getValue() === false ){
+                                    me.getPanel().down('#selectDefects').setValue(true);
+                                }
+                            }
+                            else {
+                                me[mainConfigName].artefactTypes = _.union(me[mainConfigName].artefactTypes, ['UserStory']);
+                            }
+                            me.app.fireEvent(configChange);
+
+                        }
+                    },
+                    value: _.indexOf(me[mainConfigName].artefactTypes, 'UserStory') > 0
+                },
+                {
+                    xtype: 'rallycheckboxfield',
+                    fieldLabel: 'Defects',
+                    id: 'selectDefects',
+                    margin: '0, 10 0 0',
+                    listeners: {
+                        change: function(item, setting) {
+                            if (!setting) {
+                                me[mainConfigName].artefactTypes = _.without(me[mainConfigName].artefactTypes, 'Defect');
+                                if ( me.getPanel().down('#selectStories').getValue() === false ){
+                                    me.getPanel().down('#selectStories').setValue(true);
+                                }
+
+                            }
+                            else {
+                                me[mainConfigName].artefactTypes = _.union(me[mainConfigName].artefactTypes, ['Defect']);
+                            }
+                            me.app.fireEvent(configChange);
+                        }
+                    },
+                     value: _.indexOf(me[mainConfigName].artefactTypes, 'Defect') > 0
+
+                }
+            ]
+        });
+
         panel.add( {
             xtype: 'textarea',
             fieldLabel: 'Story Filter',

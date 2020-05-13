@@ -176,7 +176,7 @@ Ext.define('Niks.Apps.PlanningGame', {
         var me = this;
         var deferred = Ext.create('Deft.Deferred');
         Ext.create('Rally.data.wsapi.artifact.Store',{
-            models: ['UserStory', 'Defect' ],
+            models: me._GC.getConfigValue('artefactTypes'),
             context: this.getContext().getDataContext(),
             autoLoad: true,
             pageSize: storyFetchLimit,

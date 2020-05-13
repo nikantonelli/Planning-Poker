@@ -19,6 +19,7 @@ Ext.define('Niks.Apps.PokerIterationConfig', {
         var me = this;
         var panel = Ext.create('Ext.panel.Panel', {
             floating: true,
+            draggable: true,
             width: 400,
             baseCls: 'configPanel',
             hidden: true,
