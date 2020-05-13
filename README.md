@@ -18,13 +18,17 @@ When first starting in a project, the app will ask if you want to be the moderat
 The app uses the moderator setting to serve up the different pages. If the moderator is not available to reset this value, you can go to the projects custom field and delete/update the config entry directly. You have to have permissions to do this, though.
 
 There are two options for story selection:
-1. Those that are not sized (or have size of zero). To enable this, tick the box for "Fetch Unsized Only" on the moderators Config panel.
-2. Those in a particular iteration. Untick the above box and then use the Iteration selector in the moderators Iteration panel.
+1. Those that are filtered by the query in the moderators config panel.
+2. Those in a particular iteration. Tick the box in the moderators panel to Enable Iteration Selector and then use the Iteration selector in the moderators Iteration panel. The query filter is still applied, so be aware.
+
+To get just Unsized stories, you can add this filter: 
+    (PlanEstimate = null)
+To get Unsized and zero sized, you can add this filter:
+    ((PlanEstimate = null) OR (PlanEstimate = 0))
+    
 The app respects the context you have, so if you select Project Scope Down/Project Scope Up, it will use those.
 
-Added recently is the ability to add a Query to do extra filtering. This is not really a good idea, but a customer asked for it, so there it is. I think it would be better to prioritise your backlog and work from the top every time.
-
-In my mind, zero size is not really an acceptable size, so should be revoted on or removed from the backlog. Once all stories are decided on, the users can click on Reload Game to get the next stories up ready for voting.
+In my mind, zero size is not really an acceptable size, so should be revoted on or removed from the backlog. Once all stories are decided on, the users can click on Reload Game to get the next stories up ready for voting. The first 50 stories are loaded only. This is by design and is to make sure the app loads in a reasonable time to start with.
 
 The moderator can set whether the Team Members only get to see T-Shirt sizing via the Config panel. The moderator panel always shows the value, but will also show the T-shirt size the team member has chosen. The T-Shirt sizes are currently hardcoded into the app, but you can change them yourself - just look for the string "valueSeries" in the html that you loaded in. If you use the App-uncompressed.html file, it will be easy to read.
 
