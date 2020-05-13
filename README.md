@@ -21,9 +21,12 @@ There are two options for story selection:
 1. Those that are filtered by the query in the moderators config panel.
 2. Those in a particular iteration. Tick the box in the moderators panel to Enable Iteration Selector and then use the Iteration selector in the moderators Iteration panel. The query filter is still applied, so be aware.
 
-To get just Unsized stories, you can add this filter: 
+To get just Unsized stories, you can add this filter:
+
     (PlanEstimate = null)
+    
 To get Unsized and zero sized, you can add this filter:
+
     ((PlanEstimate = null) OR (PlanEstimate = 0))
     
 The app respects the context you have, so if you select Project Scope Down/Project Scope Up, it will use those.
