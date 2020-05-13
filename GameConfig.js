@@ -9,7 +9,7 @@ Ext.define('Niks.Apps.PokerGameConfig', {
     mainConfig: {
         activeStory: null,
         moderatorID: null,
-        onlyUnsized: false,
+        allowIterationSelector: false,
     },
      */
     /** 
@@ -180,14 +180,14 @@ Ext.define('Niks.Apps.PokerGameConfig', {
 
         panel.add( {
             xtype: 'rallycheckboxfield',
-            fieldLabel: "Fetch Unsized Only",
-            id: 'unsizedOnly',
-            value: me[mainConfigName].onlyUnsized,
+            fieldLabel: "Enable Iteration Selector",
+            id: 'allowIterationSelector',
+            value: me[mainConfigName].allowIterationSelector,
             labelWidth: 200,
             margin: '10 0 10 20',
             listeners: {
                 change: function( tickbox, newV, oldV, opts) {
-                    me[mainConfigName].onlyUnsized = newV;
+                    me[mainConfigName].allowIterationSelector = newV;
                     me.app.fireEvent(configChange);
                 }
             }

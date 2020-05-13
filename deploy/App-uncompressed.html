@@ -173,7 +173,7 @@
         this._UC.restart(iAmMod);
         var page = this._UC.getPanel(iAmMod);
         if (this._iAmModerator()) {
-            var noCompilerMessage = this._GC.getConfigValue('onlyUnsized')? this._UC.disableIterationButton():this._UC.enableIterationButton();
+            var noCompilerMessage = this._GC.getConfigValue('allowIterationSelector')? this._UC.enableIterationButton():this._UC.disableIterationButton();
         } 
         this._UC.loadStories(this._storyStore.getRecords());
         page.show();
@@ -186,6 +186,7 @@
             models: ['UserStory', 'Defect' ],
             context: this.getContext().getDataContext(),
             autoLoad: true,
+            pageSize: storyFetchLimit,
             limit: storyFetchLimit,
             sorters: [
                 {
@@ -230,29 +231,29 @@
                     filters.push(Rally.data.wsapi.Filter.fromQueryString(storyFilter));
                 }
 
-                if (me._GC.getConfigValue('onlyUnsized')) {
+                if (me._GC.getConfigValue('allowIterationSelector')) {
                     
-                    filters.push( Rally.data.wsapi.Filter.or(
-                    [
-                        {
-                            property: 'PlanEstimate',
-                            operator: '=',
-                            value: null
-                        },
-                        {
-                            property: 'PlanEstimate',
-                            operator: '=',
-                            value: 0
-                        }
-                    ]));
-                }
-                else {
+                //     filters.push( Rally.data.wsapi.Filter.or(
+                //     [
+                //         {
+                //             property: 'PlanEstimate',
+                //             operator: '=',
+                //             value: null
+                //         },
+                //         {
+                //             property: 'PlanEstimate',
+                //             operator: '=',
+                //             value: 0
+                //         }
+                //     ]));
+                // }
+                // else {
                     filters.push({
                         property: 'Iteration',
                         value: iteration
                     });
                 }
-                filters = Rally.data.wsapi.Filter.and(filters);
+                filters = Rally.data.wsapi.Filter.and(filters) || [];
         
                 me._getStoryStore(filters).then ({
                     success: function(store) {
@@ -443,7 +444,6 @@
             fetch: true,
             success: function(model) {
                 //Add any prechecks here
-                debugger;
                 if (model.hasField(me.configFieldName) && (model.getField(me.configFieldName).type.type === 'string') ) {
                     deferred.resolve(model);
                 } else {
@@ -668,7 +668,7 @@ Ext.define('Niks.Apps.PokerGameConfig', {
     mainConfig: {
         activeStory: null,
         moderatorID: null,
-        onlyUnsized: false,
+        allowIterationSelector: false,
     },
      */
     /** 
@@ -839,14 +839,14 @@ Ext.define('Niks.Apps.PokerGameConfig', {
 
         panel.add( {
             xtype: 'rallycheckboxfield',
-            fieldLabel: "Fetch Unsized Only",
-            id: 'unsizedOnly',
-            value: me[mainConfigName].onlyUnsized,
+            fieldLabel: "Enable Iteration Selector",
+            id: 'allowIterationSelector',
+            value: me[mainConfigName].allowIterationSelector,
             labelWidth: 200,
             margin: '10 0 10 20',
             listeners: {
                 change: function( tickbox, newV, oldV, opts) {
-                    me[mainConfigName].onlyUnsized = newV;
+                    me[mainConfigName].allowIterationSelector = newV;
                     me.app.fireEvent(configChange);
                 }
             }

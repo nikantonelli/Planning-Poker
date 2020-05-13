@@ -164,7 +164,7 @@ Ext.define('Niks.Apps.PlanningGame', {
         this._UC.restart(iAmMod);
         var page = this._UC.getPanel(iAmMod);
         if (this._iAmModerator()) {
-            var noCompilerMessage = this._GC.getConfigValue('onlyUnsized')? this._UC.disableIterationButton():this._UC.enableIterationButton();
+            var noCompilerMessage = this._GC.getConfigValue('allowIterationSelector')? this._UC.enableIterationButton():this._UC.disableIterationButton();
         } 
         this._UC.loadStories(this._storyStore.getRecords());
         page.show();
@@ -177,6 +177,7 @@ Ext.define('Niks.Apps.PlanningGame', {
             models: ['UserStory', 'Defect' ],
             context: this.getContext().getDataContext(),
             autoLoad: true,
+            pageSize: storyFetchLimit,
             limit: storyFetchLimit,
             sorters: [
                 {
@@ -221,29 +222,29 @@ Ext.define('Niks.Apps.PlanningGame', {
                     filters.push(Rally.data.wsapi.Filter.fromQueryString(storyFilter));
                 }
 
-                if (me._GC.getConfigValue('onlyUnsized')) {
+                if (me._GC.getConfigValue('allowIterationSelector')) {
                     
-                    filters.push( Rally.data.wsapi.Filter.or(
-                    [
-                        {
-                            property: 'PlanEstimate',
-                            operator: '=',
-                            value: null
-                        },
-                        {
-                            property: 'PlanEstimate',
-                            operator: '=',
-                            value: 0
-                        }
-                    ]));
-                }
-                else {
+                //     filters.push( Rally.data.wsapi.Filter.or(
+                //     [
+                //         {
+                //             property: 'PlanEstimate',
+                //             operator: '=',
+                //             value: null
+                //         },
+                //         {
+                //             property: 'PlanEstimate',
+                //             operator: '=',
+                //             value: 0
+                //         }
+                //     ]));
+                // }
+                // else {
                     filters.push({
                         property: 'Iteration',
                         value: iteration
                     });
                 }
-                filters = Rally.data.wsapi.Filter.and(filters);
+                filters = Rally.data.wsapi.Filter.and(filters) || [];
         
                 me._getStoryStore(filters).then ({
                     success: function(store) {
@@ -434,7 +435,6 @@ Ext.define('Niks.Apps.PlanningGame', {
             fetch: true,
             success: function(model) {
                 //Add any prechecks here
-                debugger;
                 if (model.hasField(me.configFieldName) && (model.getField(me.configFieldName).type.type === 'string') ) {
                     deferred.resolve(model);
                 } else {
