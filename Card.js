@@ -87,18 +87,6 @@ Ext.define('Niks.Apps.PokerCard', {
             if (target.nodeName === "A") {
                 return;
             }
-            
-            if (cardSelected === this) {
-                this.removeCls('cardSelected');
-                cardSelected  = null;
-            }
-            else {
-                this.addCls('cardSelected');
-                if (cardSelected !== null)  {
-                    cardSelected.removeCls('cardSelected');
-                }
-                cardSelected = this;
-            }
             this.up('#pokerApp').fireEvent('cardselected',this);
         }, me);
     },

@@ -1,14 +1,15 @@
 Ext.define('Niks.Apps.PlanningGame', {
     extend: 'Rally.app.App',
     componentCls: 'app',
-    id: 'pokerApp',
+    itemId: 'pokerApp',
 
     //Only save the least amount of data in here. We only have 32768 chars to play with
     _GC: {},
 
     config: {
         configFieldName: "c_PlanningPokerConfig",
-        configSplitter: '^'
+        configSplitter: '^',
+        showVotePanel: false    //Initial view for Moderator
     },
 
     statics: {
@@ -62,6 +63,19 @@ Ext.define('Niks.Apps.PlanningGame', {
             });
         },
 
+        switchpanel: function() {
+            if ( this.showVotePanel ) {
+                this.showVotePanel = false;
+                this.userPage.hide();
+                this.modPage.show();
+            }
+            else {
+                this.showVotePanel = true;
+                this.userPage.show();
+                this.modPage.hide();                
+            }
+        },
+
         configsave: function() {
             this._saveProjectConfig();
         },
@@ -99,6 +113,11 @@ Ext.define('Niks.Apps.PlanningGame', {
             }
         },
         cardselected: function(story) {
+            console.log('cardselected: ', story);
+            this._UC.selectCard(story);
+            if (this._iAmModerator()) {
+                this._MC.selectCard(story);
+            }
             if (this._UC.setVoting(story, this._GC.getNamedConfig(mainConfigName))){     //Configure your own panel and if not running a timer send out message to all
                 this._storySelected = story;    //Send message to other users when asked to post the vote
             }
@@ -161,15 +180,26 @@ Ext.define('Niks.Apps.PlanningGame', {
     _setUpUserScreen: function() {
         //Check for whether we are the moderator
         var iAmMod = this._iAmModerator();
-        this._UC.restart(iAmMod);
-        var page = this._UC.getPanel(iAmMod);
-        if (this._iAmModerator()) {
-            var noCompilerMessage = this._GC.getConfigValue('allowIterationSelector')? this._UC.enableIterationButton():this._UC.disableIterationButton();
-        } 
+
+        if (iAmMod) {
+            this.modPage = this._MC.restart(true);
+            this._MC.addSwitch();
+            this.modPage.show();
+            this.userPage = this._UC.restart(false);
+            this._UC.addSwitch();
+            this.userPage.hide();
+            var noCompilerMessage = this._GC.getConfigValue('allowIterationSelector')? this._MC.enableIterationButton():this._MC.disableIterationButton();
+        }
+        else {
+            this.userPage = this._UC.restart(false);
+            this.userPage.show();
+        }
         if ( this._storyStore) {
+            if (iAmMod) {
+                this._MC.loadStories(this._storyStore.getRecords());
+            }
             this._UC.loadStories(this._storyStore.getRecords());
         }
-        page.show();
     },
 
     _getStoryStore: function(filters) {
@@ -274,6 +304,7 @@ Ext.define('Niks.Apps.PlanningGame', {
          this._UC.useTShirtSizing( this._GC.getConfigValue('useTShirt'));
 
         if (this._iAmModerator()) {
+            this._MC.useTShirtSizing( this._GC.getConfigValue('useTShirt'));
             /* Firstly, we need the team members
             */
             var record = this.projectStore.getRecords()[0];
@@ -291,7 +322,7 @@ Ext.define('Niks.Apps.PlanningGame', {
                         if (success === true) {
                             Rally.ui.notify.Notifier.show({ message: "Team members loaded"});
                             _.each(members, function(member) {
-                                me._UC.addUser(member);
+                                me._MC.addUser(member);
                             });
                             me._kickOff();
                         }
@@ -319,7 +350,14 @@ Ext.define('Niks.Apps.PlanningGame', {
             project: me.getContext().getProject()
         });
 
+        //Users voting panel
         me._UC = Ext.create('Niks.Apps.PokerUserConfig', {
+            app: me,
+            project: me.getContext().getProject()
+        });
+
+        //Moderators control panel
+        me._MC = Ext.create('Niks.Apps.PokerUserConfig', {
             app: me,
             project: me.getContext().getProject()
         });
@@ -334,10 +372,6 @@ Ext.define('Niks.Apps.PlanningGame', {
 
     _startGame: function() {
         var me = this;
-
-        //In case we come here after restart, destroy everything
-
-        me._UC.destroyPanel();
 
         //Check for required fields in this project node
 
@@ -482,7 +516,8 @@ Ext.define('Niks.Apps.PlanningGame', {
             listeners: {
                 load: function(store, records) {
                     me._GC.initialiseConfig(records[0].get(this.configFieldName));
-                    me._UC.setConfig(me._GC.getNamedConfig(userConfigName));
+                    me._UC.setConfig(me._GC.getNamedConfig(userConfigName)); 
+                    me._MC.setConfig(me._GC.getNamedConfig(userConfigName)); 
                     me._IC.setConfig(me._GC.getNamedConfig(iterConfigName));
                     var currentConfig = me._GC.getNamedConfig(mainConfigName);
                     deferred.resolve(currentConfig);
@@ -500,7 +535,7 @@ Ext.define('Niks.Apps.PlanningGame', {
     _saveProjectConfig: function(existingDefer) {
         var me = this;
         this._GC.updateNamedConfig(iterConfigName, this._IC.getConfig());
-        this._GC.updateNamedConfig(userConfigName, this._UC.getConfig());
+        this._GC.updateNamedConfig(userConfigName, this._MC.getConfig());
 
         var deferred = (existingDefer === undefined) ? Ext.create("Deft.Deferred") : existingDefer;
         var currentConfig = this._GC.getGameConfig();

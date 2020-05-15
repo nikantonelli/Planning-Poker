@@ -3,6 +3,7 @@ Ext.define('Niks.Apps.Panel', {
     bubbleEvents: [],
 
     constructor: function(config) {
+        this.users = [];
         //this.callParent(arguments);
         Ext.applyIf(this, config);
     },

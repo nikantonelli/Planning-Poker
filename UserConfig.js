@@ -2,13 +2,8 @@
  * 
  */
 
-var cardSelected = null;
-
 Ext.define('Niks.Apps.PokerUserConfig', {
     extend: Niks.Apps.Panel,
-    users: [],
-    stories: [],
-    id: userConfigName+'Panel',
     
     getConfig: function() {
         return this[userConfigName];
@@ -34,11 +29,12 @@ Ext.define('Niks.Apps.PokerUserConfig', {
     restart: function(iAmMod) {
         this.stories = [];
         this.destroyPanel();
-        this.getPanel(iAmMod);
-        cardSelected = null;
+        var page = this.getPanel(iAmMod);
+        this.cardSelected = null;
         if (iAmMod) {
             this._doVotes();
         }
+        return page;
     },
 
     //Stories can come as the form of the records in a store
@@ -78,6 +74,27 @@ Ext.define('Niks.Apps.PokerUserConfig', {
     /** Mainconfig comes over from the app so that we can set the time up 
      *  when we are moderator
     */
+
+    selectCard: function(card, selected) {
+
+        //Find our entry in this.stories for chosen card
+        var cardSelected = _.find( this.stories, function(storyCard) {
+            return card.story.get(cardIdField) === storyCard.story.get(cardIdField);
+        });
+
+        if (cardSelected === this.cardSelected) {
+                this.cardSelected.removeCls('cardSelected');
+                this.cardSelected  = null;
+        }
+        else {
+            cardSelected.addCls('cardSelected');
+            if (this.cardSelected)  {
+                this.cardSelected.removeCls('cardSelected');
+            }
+            this.cardSelected = cardSelected;
+        }
+    },
+
     setVoting: function(card, mainConfig) {
         var me = this;
         this.votingCard = card;
@@ -121,7 +138,7 @@ Ext.define('Niks.Apps.PokerUserConfig', {
 
             /** Enable all the buttons  */
             var ap = this.configPanel.down('#actions');
-            if (cardSelected) {
+            if (this.cardSelected) {
                 _.each(ap.getChildItemsToDisable(), function(item) { item.enable();});
             } else {
                 _.each(ap.getChildItemsToDisable(), function(item) { item.disable();});
@@ -133,6 +150,20 @@ Ext.define('Niks.Apps.PokerUserConfig', {
 
     refreshVotes: function() {
         this._doVotes();
+    },
+
+    //Add button to send switchpanel message to app
+    addSwitch: function() {
+        var me = this;
+        this.getPanel().down('#menu').add({
+            xtype: 'rallybutton',
+            width: 100,
+            text: 'Switch View',
+            margin: '10 10 0 10',
+            handler: function() {
+                me.app.fireEvent('switchpanel');
+            }
+        });
     },
 
     disableIterationButton: function() {
@@ -148,8 +179,9 @@ Ext.define('Niks.Apps.PokerUserConfig', {
     },
 
     setVote: function(vote) {
+        var me = this;
         var storySelected = _.find( this.stories, function(card) {
-            return cardSelected.story.get(cardIdField) === card.story.get(cardIdField);
+            return me.cardSelected.story.get(cardIdField) === card.story.get(cardIdField);
         });
         storySelected.setVoteString(vote);
         //debugger;
@@ -249,7 +281,7 @@ Ext.define('Niks.Apps.PokerUserConfig', {
         me._revealVotes = false;
 
         var deferred = Ext.create('Deft.Deferred');
-        if (cardSelected === null) { 
+        if (this.cardSelected === null) { 
             Rally.ui.notify.Notifier.showWarning({message: 'No item selected'});
             deferred.resolve([]);
             return deferred.promise;
@@ -273,7 +305,7 @@ Ext.define('Niks.Apps.PokerUserConfig', {
         filters.push(
             {
                 property: 'Artifact',
-                value: cardSelected.story.get('_ref')
+                value: this.cardSelected.story.get('_ref')
             }
         );
 
@@ -320,7 +352,7 @@ Ext.define('Niks.Apps.PokerUserConfig', {
             me._timerRunning -= 1;
             setTimeout(me._countdownTimer, 1000, me);
         } else {
-            if (cardSelected) {
+            if (this.cardSelected) {
                 // Ext.create('Rally.ui.dialog.ConfirmDialog', {
                 //     title: 'Timer Expired',
                 //     message: "Refresh Votes?",
@@ -368,26 +400,27 @@ Ext.define('Niks.Apps.PokerUserConfig', {
         this.userOrModerator = userOrModerator;
         var page = me.configPanel = Ext.create('Ext.container.Container', {
             width: '100%',
+            hideMode: 'display',
             height: me.app.getHeight(),
             layout: 'hbox',
-            id: 'userPage',
+            itemId: userOrModerator? 'modPage':'userPage',
             items: [
                 {
                     xtype: 'container',
-                    id: 'menu',
+                    itemId: 'menu',
                     width: 120,
                     margin: cardMargin,
                     cls:'clearpanel'
                 },
                 {
                     xtype: 'container',
-                    id: 'actions',
+                    itemId: 'actions',
                     width: 400,
                     cls:'clearpanel',
                 },
                 {
                     xtype: 'container',
-                    id: 'cardspaceparent',
+                    itemId: 'cardspaceparent',
                     width: '50%',
                     height: '100%',
                     flex: 1,
@@ -406,7 +439,7 @@ Ext.define('Niks.Apps.PokerUserConfig', {
                     items: [
                         {
                             xtype: 'textfield',
-                            id: 'countdowntimer',
+                            itemId: 'countdowntimer',
 //                            width: '100%',
                             height: 50,
                             margin: 10,
@@ -429,7 +462,7 @@ Ext.define('Niks.Apps.PokerUserConfig', {
                                     margin: 10,
                                     width: 100,
                                     handler: function() {
-                                        if ( cardSelected === null ){
+                                        if ( this.cardSelected === null ){
                                             Rally.ui.notify.Notifier.showWarning({message: 'No story selected'});
                                         }else {
                                             me._countdownTimer(me);
@@ -459,7 +492,7 @@ Ext.define('Niks.Apps.PokerUserConfig', {
                         },
                         {
                             xtype: 'panel',
-                            id: 'votespanel',
+                            itemId: 'votespanel',
                             width: '100%',
                             bodyCls: 'userpanel',
                             margin: '10 0 10 0',
@@ -486,7 +519,7 @@ Ext.define('Niks.Apps.PokerUserConfig', {
                                 },
                                 {
                                     xtype: 'rallybutton',
-                                    id: 'revealvotesbtn',
+                                    itemId: 'revealvotesbtn',
                                     text: 'Reveal Votes',
                                     margin: 10,
                                     width: 100,
@@ -515,7 +548,7 @@ Ext.define('Niks.Apps.PokerUserConfig', {
             //We are a user here, so we can add the size selectors to the actions panel and add a vote button
             page.down('#actions').add( {
                 xtype: 'label',
-                id: 'votemessage',
+                itemId: 'votemessage',
                 grow: true,
                 margin: 10,
                 hideLabel: true,
@@ -526,7 +559,7 @@ Ext.define('Niks.Apps.PokerUserConfig', {
             var szsp = Ext.create('Ext.panel.Panel',
                 {
                     xtype: 'panel',
-                    id: 'sizespace',
+                    itemId: 'sizespace',
                     margin: 10,
                     layout: {
                         type: 'table',
@@ -554,7 +587,7 @@ Ext.define('Niks.Apps.PokerUserConfig', {
         numcols = (numcols>0)? numcols: 1;
         cs.add( {
             xtype: 'panel',
-            id: 'cardspace',
+            itemId: 'cardspace',
             margin: 10,
             layout: {
                 type: 'table',
@@ -575,7 +608,7 @@ Ext.define('Niks.Apps.PokerUserConfig', {
             });
             page.down('#menu').add({
                 xtype: 'rallybutton',
-                id: 'iterationButton',
+                itemId: 'iterationButton',
                 width: 100,
                 text: 'Iteration',
                 margin: '10 10 0 10',
