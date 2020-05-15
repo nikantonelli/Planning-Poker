@@ -75,7 +75,7 @@ Ext.define('Niks.Apps.PokerUserConfig', {
      *  when we are moderator
     */
 
-    selectCard: function(card, selected) {
+    selectCard: function(card, mainConfig) {
 
         //Find our entry in this.stories for chosen card
         var cardSelected = _.find( this.stories, function(storyCard) {
@@ -93,9 +93,10 @@ Ext.define('Niks.Apps.PokerUserConfig', {
             }
             this.cardSelected = cardSelected;
         }
+        return this._setVoting(card, mainConfig);
     },
 
-    setVoting: function(card, mainConfig) {
+    _setVoting: function(card, mainConfig) {
         var me = this;
         this.votingCard = card;
         this[mainConfigName] = mainConfig;

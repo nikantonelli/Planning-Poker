@@ -114,14 +114,13 @@ Ext.define('Niks.Apps.PlanningGame', {
         },
         cardselected: function(story) {
             console.log('cardselected: ', story);
-            this._UC.selectCard(story);
+            this._UC.selectCard(story,this._GC.getNamedConfig(mainConfigName));
             if (this._iAmModerator()) {
-                this._MC.selectCard(story);
+                this._MC.selectCard(story,this._GC.getNamedConfig(mainConfigName));
             }
-            if (this._UC.setVoting(story, this._GC.getNamedConfig(mainConfigName))){     //Configure your own panel and if not running a timer send out message to all
-                this._storySelected = story;    //Send message to other users when asked to post the vote
-            }
+            this._storySelected = story;    //Send message to other users when asked to post the vote
         },
+        
         voteselected: function(vote) {
             this._voteSelected = vote;
             this._UC.setVote(vote);
