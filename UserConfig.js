@@ -92,8 +92,22 @@ Ext.define('Niks.Apps.PokerUserConfig', {
                 this.cardSelected.removeCls('cardSelected');
             }
             this.cardSelected = cardSelected;
+            return this._setVoting(card, mainConfig);
         }
-        return this._setVoting(card, mainConfig);
+        this._checkVoteButton();
+        return false;
+    },
+
+    _checkVoteButton: function() {
+        var voteButton =  this.getPanel().down('#voteNow');
+         if ( voteButton) {
+             if ( this.cardSelected && this.cardSelected.vote) {
+                 voteButton.enable();
+             }
+             else {
+                 voteButton.disable();
+             }
+         }
     },
 
     _setVoting: function(card, mainConfig) {
@@ -194,10 +208,12 @@ Ext.define('Niks.Apps.PokerUserConfig', {
         storySelected.setVoteString(vote);
         //debugger;
         this.getPanel().down('#votemessage').update('&larr; Vote '+(vote.tshirt?vote.size:vote.value).toString());
+        this._checkVoteButton();
     },
 
     clearVote: function() {
         this.getPanel().down('#votemessage').update('Choose a vote &darr;');
+        this._checkVoteButton();
     },
 
     _timerRunning: 0,
@@ -630,6 +646,8 @@ Ext.define('Niks.Apps.PokerUserConfig', {
             page.down('#menu').add({
                 xtype: 'rallybutton',
                 width: 100,
+                disabled: true,
+                itemId: 'voteNow',
                 text: 'Vote Now',
                 margin: '10 10 0 10',
                 handler: function() {
