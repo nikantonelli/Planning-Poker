@@ -149,6 +149,13 @@ Ext.define('Niks.Apps.PokerUserConfig', {
         }
     },
 
+    postedVote: function(card) {
+        var foundStory = _.find(this.stories, function(savedStory) {
+            return card.story.get(cardIdField) === savedStory.story.get(cardIdField);
+        });
+        foundStory.postedVote();
+    },
+
     refreshVotes: function() {
         this._doVotes();
     },

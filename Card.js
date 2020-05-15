@@ -60,7 +60,7 @@ Ext.define('Niks.Apps.PokerCard', {
 
         this.tf = Ext.create('Ext.form.field.Text', {
                 xtype: 'textfield',
-                id: 'sizeText'+story.get(cardIdField),
+                itemId: 'sizeText'+story.get(cardIdField),
                 width: cardWidth - 30,
                 margin: '5 0 5 10',
                 cls: 'definedfield'

@@ -120,7 +120,7 @@ Ext.define('Niks.Apps.PlanningGame', {
             }
             this._storySelected = story;    //Send message to other users when asked to post the vote
         },
-        
+
         voteselected: function(vote) {
             this._voteSelected = vote;
             this._UC.setVote(vote);
@@ -142,7 +142,7 @@ Ext.define('Niks.Apps.PlanningGame', {
                                     Rally.ui.notify.Notifier.show({message: Ext.String.format('Vote Posted on {0} was {1}',
                                         me._storySelected.story.get('FormattedID'),
                                         me.getSetting('useTShirt')?me._voteSelected.size: me._voteSelected.value)});
-                                    me._storySelected.postedVote();
+                                    me._UC.postedVote(me._storySelected);
                                 }
                                 else {
                                     Rally.ui.notify.Notifier.showWarning({message: 'Failed to post vote. Please retry'});
