@@ -285,6 +285,7 @@ Ext.define('Niks.Apps.PokerUserConfig', {
     _setVotes: function(results) {
         var me = this;
         if (!this.configPanel) { return;}
+        if (!results.length) { this._revealVotes = false;}
         var votesPanel = this.configPanel.down('#votespanel');
         votesPanel.removeAll();
          var showHideBtn = this.configPanel.down('#revealvotesbtn');
