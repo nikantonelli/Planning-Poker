@@ -76,15 +76,31 @@ Ext.define('Niks.Apps.PlanningGame', {
             }
         },
 
-        configsave: function() {
+        //These two can be triggered from the config panel.
+        adduser: function(user) {
+            this._MC.addExtraUser(user);
+            this._GC.addExtraUser(user);
+        },
+
+        removeuser: function(user) {
+            this._MC.removeExtraUser(user);
+            this._GC.removeExtraUser(user);
+        },
+        
+        configsaver: function() {
             this._saveProjectConfig();
         },
 
         configchanged: function() {
+            var me = this;
             //GC itself updates directly from panel, so no need to fetch here
             this._saveProjectConfig().then({
-                success: function() {
+                success: function(result) {
+                    me._GC.initialiseConfig(result);
                     /** Config saved and restart from scratch */
+                    me._UC.setConfig(me._GC.getNamedConfig(userConfigName)); 
+                    me._MC.setConfig(me._GC.getNamedConfig(userConfigName)); 
+                    me._IC.setConfig(me._GC.getNamedConfig(iterConfigName));
                     this._reloadGame();
                 },
                 failure: function(e) {
@@ -306,40 +322,109 @@ Ext.define('Niks.Apps.PlanningGame', {
             this._MC.useTShirtSizing( this._GC.getConfigValue('useTShirt'));
             /* Firstly, we need the team members
             */
-            var record = this.projectStore.getRecords()[0];
-            if ( record.get('TeamMembers').Count > 0) {
-                record.getCollection('TeamMembers').load( {
-                    fetch: true,
-                    filters: [
-                        {
-                            property: 'Disabled',
-                            value: false
-                        }
-                    ],
-                    callback: function( members, operation, success) {
-                        //Add all the team members to the GameConfig
-                        if (success === true) {
-                            Rally.ui.notify.Notifier.show({ message: "Team members loaded"});
-                            _.each(members, function(member) {
-                                me._MC.addUser(member);
-                            });
-                            me._kickOff();
-                        }
-                        else {
-                            console.log("Team members field unavailable");
-                        }
-                    },
-                    scope: me
-                });
-            }
-            else {
-                Rally.ui.notify.Notifier.showWarning({ message: "Team members not configured"});
-            }
+            var funcs = [this._loadTeamMembers];
+            funcs.push(this._loadExtraUsers);
+            
+            Deft.Chain.parallel(funcs, me).then({
+                success: function( results ) {
+                    //Add the team members
+                    _.each(results[0], function(member) {
+                        console.log('Adding user: ',member);
+                        me._MC.addUser(member);
+                    });
+                    //Add the extra users
+                    _.each(results[1], function(member) {
+                        console.log('Adding user: ',member);
+                        me._MC.addExtraUser(member);
+                        me._GC.addExtraUser(member);
+                    });
+                },
+                failure: function ( error) {
+                    Rally.ui.nofity.Notifier.showError({message: error});
+                }
+            }).always( function(results) {   
+                me._kickOff();
+            });
         }
         else {
             me._kickOff();
         }
 
+    },
+
+    _loadExtraUsers: function() {
+        var deferred = Ext.create('Deft.Deferred');
+        var users = this._GC.getConfigValue('extraUsers') || [];
+        if (!users.length) {
+            deferred.resolve([]);
+            return deferred.promise;
+        }
+
+        var filters = [
+            {
+                property: 'Disabled',
+                value: false
+            },
+            {
+                    property: userIdField,
+                    operator: 'in',
+                    value: _.pluck(users, 'userOID')
+            }
+        ];
+
+        Ext.create('Rally.data.wsapi.Store', {
+            model: 'User',
+            fetch: true,
+            autoLoad: true,
+            filters:filters,
+            listeners: {
+                load: function( store, records, success) {
+                    if (success === true) {
+                        Rally.ui.notify.Notifier.show({ message: "Extra Users loaded"});
+                        deferred.resolve(records);
+                    }
+                    else {
+                        console.log("Extra Users unavailable");
+                        deferred.reject("Extra Users unavailable");
+                    }
+                },
+                scope: this
+            }
+        });
+        return deferred.promise;
+    },
+
+    _loadTeamMembers: function() {
+        var deferred = Ext.create('Deft.Deferred');
+        var record = this.projectStore.getRecords()[0];
+        if ( record.get('TeamMembers').Count > 0) {
+            record.getCollection('TeamMembers').load( {
+                fetch: true,
+                filters: [
+                    {
+                        property: 'Disabled',
+                        value: false
+                    }
+                ],
+                callback: function( members, operation, success) {
+                    //Add all the team members to the GameConfig
+                    if (success === true) {
+                        Rally.ui.notify.Notifier.show({ message: "Team members loaded"});
+                        deferred.resolve(members);
+                    }
+                    else {
+                        console.log("Team members field unavailable");
+                        deferred.reject("Team members field unavailable");
+                    }
+                },
+                scope: this
+            });
+        }
+        else {
+            Rally.ui.notify.Notifier.showWarning({ message: "Team members not configured"});
+            deferred.reject(null,'No Team Members');
+        }
+        return deferred.promise;
     },
 
     launch: function () {
@@ -545,7 +630,7 @@ Ext.define('Niks.Apps.PlanningGame', {
             success: function() {
                 this._failedSave = 0;
                 Rally.ui.notify.Notifier.show({ message: "Config Saved to Project"});
-                deferred.resolve();
+                deferred.resolve(currentConfig);
             },
             failure: function() {
                 if (this._failedSave < this.self.SAVE_FAIL_RETRIES) {

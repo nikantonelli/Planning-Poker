@@ -45,7 +45,7 @@ Ext.define('Niks.Apps.PokerIterationConfig', {
                             } else {
                                 me[iterConfigName].currentIteration = record.get('_ref');
                             }
-                            me.app.fireEvent('configChanged');
+                            me.app.fireEvent(configChange);
                         }
                     }
                 });

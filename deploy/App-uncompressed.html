@@ -85,15 +85,31 @@
             }
         },
 
-        configsave: function() {
+        //These two can be triggered from the config panel.
+        adduser: function(user) {
+            this._MC.addExtraUser(user);
+            this._GC.addExtraUser(user);
+        },
+
+        removeuser: function(user) {
+            this._MC.removeExtraUser(user);
+            this._GC.removeExtraUser(user);
+        },
+        
+        configsaver: function() {
             this._saveProjectConfig();
         },
 
         configchanged: function() {
+            var me = this;
             //GC itself updates directly from panel, so no need to fetch here
             this._saveProjectConfig().then({
-                success: function() {
+                success: function(result) {
+                    me._GC.initialiseConfig(result);
                     /** Config saved and restart from scratch */
+                    me._UC.setConfig(me._GC.getNamedConfig(userConfigName)); 
+                    me._MC.setConfig(me._GC.getNamedConfig(userConfigName)); 
+                    me._IC.setConfig(me._GC.getNamedConfig(iterConfigName));
                     this._reloadGame();
                 },
                 failure: function(e) {
@@ -315,40 +331,109 @@
             this._MC.useTShirtSizing( this._GC.getConfigValue('useTShirt'));
             /* Firstly, we need the team members
             */
-            var record = this.projectStore.getRecords()[0];
-            if ( record.get('TeamMembers').Count > 0) {
-                record.getCollection('TeamMembers').load( {
-                    fetch: true,
-                    filters: [
-                        {
-                            property: 'Disabled',
-                            value: false
-                        }
-                    ],
-                    callback: function( members, operation, success) {
-                        //Add all the team members to the GameConfig
-                        if (success === true) {
-                            Rally.ui.notify.Notifier.show({ message: "Team members loaded"});
-                            _.each(members, function(member) {
-                                me._MC.addUser(member);
-                            });
-                            me._kickOff();
-                        }
-                        else {
-                            console.log("Team members field unavailable");
-                        }
-                    },
-                    scope: me
-                });
-            }
-            else {
-                Rally.ui.notify.Notifier.showWarning({ message: "Team members not configured"});
-            }
+            var funcs = [this._loadTeamMembers];
+            funcs.push(this._loadExtraUsers);
+            
+            Deft.Chain.parallel(funcs, me).then({
+                success: function( results ) {
+                    //Add the team members
+                    _.each(results[0], function(member) {
+                        console.log('Adding user: ',member);
+                        me._MC.addUser(member);
+                    });
+                    //Add the extra users
+                    _.each(results[1], function(member) {
+                        console.log('Adding user: ',member);
+                        me._MC.addExtraUser(member);
+                        me._GC.addExtraUser(member);
+                    });
+                },
+                failure: function ( error) {
+                    Rally.ui.nofity.Notifier.showError({message: error});
+                }
+            }).always( function(results) {   
+                me._kickOff();
+            });
         }
         else {
             me._kickOff();
         }
 
+    },
+
+    _loadExtraUsers: function() {
+        var deferred = Ext.create('Deft.Deferred');
+        var users = this._GC.getConfigValue('extraUsers') || [];
+        if (!users.length) {
+            deferred.resolve([]);
+            return deferred.promise;
+        }
+
+        var filters = [
+            {
+                property: 'Disabled',
+                value: false
+            },
+            {
+                    property: userIdField,
+                    operator: 'in',
+                    value: _.pluck(users, 'userOID')
+            }
+        ];
+
+        Ext.create('Rally.data.wsapi.Store', {
+            model: 'User',
+            fetch: true,
+            autoLoad: true,
+            filters:filters,
+            listeners: {
+                load: function( store, records, success) {
+                    if (success === true) {
+                        Rally.ui.notify.Notifier.show({ message: "Extra Users loaded"});
+                        deferred.resolve(records);
+                    }
+                    else {
+                        console.log("Extra Users unavailable");
+                        deferred.reject("Extra Users unavailable");
+                    }
+                },
+                scope: this
+            }
+        });
+        return deferred.promise;
+    },
+
+    _loadTeamMembers: function() {
+        var deferred = Ext.create('Deft.Deferred');
+        var record = this.projectStore.getRecords()[0];
+        if ( record.get('TeamMembers').Count > 0) {
+            record.getCollection('TeamMembers').load( {
+                fetch: true,
+                filters: [
+                    {
+                        property: 'Disabled',
+                        value: false
+                    }
+                ],
+                callback: function( members, operation, success) {
+                    //Add all the team members to the GameConfig
+                    if (success === true) {
+                        Rally.ui.notify.Notifier.show({ message: "Team members loaded"});
+                        deferred.resolve(members);
+                    }
+                    else {
+                        console.log("Team members field unavailable");
+                        deferred.reject("Team members field unavailable");
+                    }
+                },
+                scope: this
+            });
+        }
+        else {
+            Rally.ui.notify.Notifier.showWarning({ message: "Team members not configured"});
+            deferred.reject(null,'No Team Members');
+        }
+        return deferred.promise;
     },
 
     launch: function () {
@@ -554,7 +639,7 @@
             success: function() {
                 this._failedSave = 0;
                 Rally.ui.notify.Notifier.show({ message: "Config Saved to Project"});
-                deferred.resolve();
+                deferred.resolve(currentConfig);
             },
             failure: function() {
                 if (this._failedSave < this.self.SAVE_FAIL_RETRIES) {
@@ -602,7 +687,7 @@
                 /** Event Passing */
 const modChange = 'moderatorchanged';
 const configChange = 'configchanged';
-const configSave = 'configsave';   //Save but don't change this game
+const configSave = 'configsaver';   //Save but don't change this game
 
 /** Configuration naming  */
 const mainConfigName = 'MainConfig';
@@ -728,6 +813,7 @@ Ext.define('Niks.Apps.PokerGameConfig', {
         if ((!this[mainConfigName].artefactTypes) || !this[mainConfigName].artefactTypes.length){
             this[mainConfigName].artefactTypes = ['UserStory', 'Defect'];
         }
+        this[mainConfigName].extraUsers = this[mainConfigName].extraUsers || [];
     },
 
     getNamedConfig: function(name) {
@@ -761,6 +847,29 @@ Ext.define('Niks.Apps.PokerGameConfig', {
         } else {
             this.userIDs.push(user[userIdField]);
         }
+    },
+
+    addExtraUser: function( user) {
+
+        if ( _.find( this[mainConfigName].extraUsers, {userOID: user.get(userIdField)})) {
+            console.log("Adding existing member - ignoring!");
+        } else {
+            this[mainConfigName].extraUsers.push({ 
+                userOID: user.get(userIdField),
+                displayName: user.get('DisplayName')
+            });
+        }
+        this._updateCurrentUserList();
+    },
+
+    removeExtraUser: function( user) {
+        storedUser = _.find( this[mainConfigName].extraUsers, {userOID: user.get(userIdField)});
+        if ( !storedUser) {
+            console.log("Removing non-existent member - ignoring!");
+        } else {
+            this[mainConfigName].extraUsers = _.without(this[mainConfigName].extraUsers, storedUser);
+        }
+        this._updateCurrentUserList();
     },
 
     getModerator: function() {
@@ -825,13 +934,26 @@ Ext.define('Niks.Apps.PokerGameConfig', {
                 this._encodeMsg(iterConfigName, JSON.stringify(this[iterConfigName]));
     },
 
+    _getCurrentUserList: function() {
+        var text = '';
+        _.each (this.getConfigValue('extraUsers'), function (user) {
+            text += user.displayName+",";
+        });
+        return text;
+    },
+
+    _updateCurrentUserList: function() {
+        this.getPanel().down('#extrauserlist').setValue(this._getCurrentUserList());
+        this.app.fireEvent(configChange);
+    },
+
     _createPanel: function() {
         var me = this;
         var panel = Ext.create('Ext.panel.Panel', {
 //        var panel = Ext.create('Ext.container.Container', {
             floating: true,
             draggable: true,
-            width: 400,
+            width: 500,
             height: 400,
             baseCls: 'configPanel',
             hidden: true,
@@ -842,8 +964,9 @@ Ext.define('Niks.Apps.PokerGameConfig', {
             xtype: 'field',
             id: 'curMod',
             fieldLabel: 'Current Moderator',
-            labelWidth: 200,            
-            margin: '10 0 10 20',
+            labelWidth: 180,
+            width: 460,
+            margin: '10 0 5 20',
             baseBodyCls: 'textfield',
             readOnly: true,
             value: me.moderatorUser? me.moderatorUser.get('UserName'): 'Not Set'
@@ -854,8 +977,9 @@ Ext.define('Niks.Apps.PokerGameConfig', {
             id: 'modChooser',
             fieldLabel: 'Change Moderator To',
             valueField: userIdField,
-            labelWidth: 200,
-            margin: '10 0 10 20',
+            labelWidth: 180,
+            width: 460,
+            margin: '5 0 5 20',
             autoSelect: false,
             listeners: {
                 //Setvalue fires when the thing is first set up with a null value.
@@ -885,8 +1009,8 @@ Ext.define('Niks.Apps.PokerGameConfig', {
             fieldLabel: "Enable Iteration Selector",
             id: 'allowIterationSelector',
             value: me[mainConfigName].allowIterationSelector,
-            labelWidth: 200,
-            margin: '10 0 10 20',
+            labelWidth: 180,
+            margin: '5 0 0 20',
             listeners: {
                 change: function( tickbox, newV, oldV, opts) {
                     me[mainConfigName].allowIterationSelector = newV;
@@ -900,11 +1024,12 @@ Ext.define('Niks.Apps.PokerGameConfig', {
             fieldLabel: "Use T-Shirt sizing",
             id: 'useTShirt',
             value: me[mainConfigName].useTShirt,
-            labelWidth: 200,
-            margin: '10 0 10 20',
+            labelWidth: 180,
+            margin: '5 0 0 20',
             listeners: {
                 change: function( tickbox, newV, oldV, opts) {
-                    me[mainConfigName].useTShirt = newV;
+                    me[mainConfigName].useTShirt = newV;                   
+                     me[userConfigName].useTShirt = newV;
                     me.app.fireEvent(configChange);
                 }
             }
@@ -914,8 +1039,8 @@ Ext.define('Niks.Apps.PokerGameConfig', {
             xtype: 'textfield',
             baseCls: 'timerText',
             fieldLabel: 'Voting Time (min:sec)',
-            labelWidth: 200,
-            margin: '10 0 10 20',
+            labelWidth: 180,
+            margin: '5 0 5 20',
             value: me[mainConfigName].votingTime  || votingTime,
             validator: function(value) {
                 if (Ext.Date.parse(value, "i:s") !== undefined) {
@@ -930,14 +1055,16 @@ Ext.define('Niks.Apps.PokerGameConfig', {
 
         panel.add( {
             xtype: 'container',
-            margin: '10 0 10 20',
+            margin: '5 0 5 20',
             layout: 'hbox',
             items: [
                 {
                     xtype: 'rallycheckboxfield',
-                    id: 'selectStories',
+                    itemId: 'selectStories',
                     fieldLabel: 'Stories',
-                    margin: '0 10 0 0',
+                    labelWidth: 80,
+                    labelAlign: 'right',
+                    margin: '0 60 0 0',
                     listeners: {
                         change: function(item, setting) {
                             if (!setting) {
@@ -953,13 +1080,15 @@ Ext.define('Niks.Apps.PokerGameConfig', {
 
                         }
                     },
-                    value: _.indexOf(me[mainConfigName].artefactTypes, 'UserStory') > 0
+                    value: _.indexOf(me[mainConfigName].artefactTypes, 'UserStory') >= 0
                 },
                 {
                     xtype: 'rallycheckboxfield',
                     fieldLabel: 'Defects',
-                    id: 'selectDefects',
-                    margin: '0, 10 0 0',
+                    labelWidth: 80,
+                    labelAlign: 'right',
+                    itemId: 'selectDefects',
+                    margin: 0,
                     listeners: {
                         change: function(item, setting) {
                             if (!setting) {
@@ -975,7 +1104,7 @@ Ext.define('Niks.Apps.PokerGameConfig', {
                             me.app.fireEvent(configChange);
                         }
                     },
-                     value: _.indexOf(me[mainConfigName].artefactTypes, 'Defect') > 0
+                     value: _.indexOf(me[mainConfigName].artefactTypes, 'Defect') >= 0
 
                 }
             ]
@@ -987,9 +1116,9 @@ Ext.define('Niks.Apps.PokerGameConfig', {
             name: 'query',
             cls: 'query-field',
             labelAlign: 'top',
-            width: 360,
+            width: 460,
             value: me[mainConfigName].storyFilter,
-            margin: '0 20 0 20',
+            margin: '0 20 5 20',
             validateOnBlur: true,
             validateOnChange: false,
             validator: function(value) {
@@ -1006,6 +1135,62 @@ Ext.define('Niks.Apps.PokerGameConfig', {
             }        
         });
 
+        panel.add ( {
+            xtype: 'container',
+            layout: 'hbox',
+            items: [
+                {
+                    margin: '0 5 5 20',
+                    fieldLabel: 'Extra User',
+                    labelWidth: 60,
+                    width: 280,
+                    xtype: 'rallyusersearchcombobox',
+                    itemId: 'usersearchbox',
+                    storeConfig: {
+                        fetch: true
+                    },
+                    listeners: {
+                        select: function(selector, user) {
+                            panel.down('#addUserButton').enable();
+                            panel.down('#delUserButton').enable();
+                        }
+                    }
+                },
+                {
+                    xtype: 'rallybutton',
+                    text: 'Add',
+                    itemId: 'addUserButton',
+                    disabled: true,
+                    width: 80,
+                    margin: '0 5 5 5',
+                    handler: function() {
+                        me.app.fireEvent('adduser', panel.down('#usersearchbox').getRecord());
+                    }
+                },
+                {
+                    xtype: 'rallybutton',
+                    text: 'Remove',
+                    itemId: 'delUserButton',
+                    width: 80,
+                    disabled: true,
+                    margin: '0 5 5 5',
+                    handler: function() {
+                        me.app.fireEvent('removeuser', panel.down('#usersearchbox').getRecord());
+                    }
+                }
+            ]
+        });
+        
+        panel.add( {
+            xtype: 'textarea',
+            fieldLabel: 'Extra User List',
+            itemId: 'extrauserlist',
+            labelAlign: 'top',
+            width: 460,
+            value: me._getCurrentUserList(),
+            margin: '0 20 5 20',
+            readOnly: true   
+        });
         this.configPanel = panel;
         return panel;
     },
@@ -1121,6 +1306,19 @@ Ext.define('Niks.Apps.PokerUserConfig', {
 
     
     /* This is called from something that has got a Store record not just a model */
+    removeUser: function(userRecord) {
+        /** Check if the user is in the array. If not, then add */
+        if (!_.find(this.users, function(user) {
+            if (userRecord.get(userIdField) === user.get(userIdField)) {
+                return true;
+            }
+        })){
+            this.users = _.without(this.users, userRecord);
+        }
+    },
+
+
+    /* This is called from something that has got a Store record not just a model */
     addUser: function(userRecord) {
         /** Check if the user is in the array. If not, then add */
         if (!_.find(this.users, function(user) {
@@ -1130,6 +1328,18 @@ Ext.define('Niks.Apps.PokerUserConfig', {
         })){
             this.users.push(userRecord);
         }
+    },
+
+
+    removeExtraUser: function(userRecord){
+        this.removeUser(user);
+        this._setVotes([]); //Redo the voting panel - clears out all votes unfortunately.
+
+    },
+
+    addExtraUser: function(user) {
+        this.addUser(user);
+        this._setVotes([]); //Redo the voting panel - clears out all votes unfortunately.
     },
 
     restart: function(iAmMod) {
@@ -1312,7 +1522,6 @@ Ext.define('Niks.Apps.PokerUserConfig', {
             return me.cardSelected.story.get(cardIdField) === card.story.get(cardIdField);
         });
         storySelected.setVoteString(vote);
-        //debugger;
         this.getPanel().down('#votemessage').update('&larr; Vote '+(vote.tshirt?vote.size:vote.value).toString());
         this._checkVoteButton();
     },
@@ -1354,8 +1563,19 @@ Ext.define('Niks.Apps.PokerUserConfig', {
         });
     },
 
+    _setNameDiv: function(str) {
+        return '<div class ="votename"><b>'+str+'</b></div>';
+    },
+    _setCastDiv: function(str) {
+        return '<div class ="votesize"><b>'+str+'</b></div>';
+    },
+    _setDateDiv: function(str) {
+        return '<div class ="votedate"><b>'+str+'</b></div>';
+    },
+
     _setVotes: function(results) {
         var me = this;
+        if (!this.configPanel) { return;}
         var votesPanel = this.configPanel.down('#votespanel');
         votesPanel.removeAll();
          var showHideBtn = this.configPanel.down('#revealvotesbtn');
@@ -1366,43 +1586,84 @@ Ext.define('Niks.Apps.PokerUserConfig', {
             showHideBtn.setText('Hide Votes');
         }
         votesPanel.add( {
-            html: '<u>Team Member</u>',
-            width: 160
+            html: this._setNameDiv("<u>Team Member</u>")
         });
         votesPanel.add( {
-            html: '<u>Vote Cast</u>',
-            width: 100
+            html: this._setCastDiv("<u>Vote Cast</u>")
         });
         votesPanel.add( {
-            html: '<u>When</u>',
-            width: 140
+            html: this._setDateDiv("<u>When</u>")
         });
         
+        var votesFound = [];
+
         _.each(me.users, function(user) {
             var foundUserAnswer = _.find(results, function(result) {
                 return result.get('User').ObjectID === user.get('ObjectID');
             });
-            var answer = "&nbsp";
+            var vote = "&nbsp";
+            var answer = {};
             var timeAt = "&nbsp";
             if (foundUserAnswer !== undefined) {
                 answer = foundUserAnswer.get('Text');
                 answer =  JSON.parse(answer.split(pokerMsg.votePosted+':')[1].split('<')[0]);
-                answer = this._revealVotes?(answer.tshirt?(answer.size+ ' ('+answer.value+')'):answer.value).toString(): '?';
+                votesFound.push(answer);
+                vote = this._revealVotes?(answer.tshirt?(answer.size+ ' ('+answer.value+')'):answer.value).toString(): '?';
                 timeAt = foundUserAnswer.get('_CreatedAt');
             }
             votesPanel.add( {
-                html: user.get('_refObjectName'),
+                html: this._setNameDiv(user.get('_refObjectName')),
             });
             votesPanel.add( {
-                html: answer,
+                html: this._setCastDiv(vote),
             });
             votesPanel.add( {
-                html: timeAt,
+                html: this._setDateDiv(timeAt),
             });
             // Put this inside loop so that we don't have to check for null
             this.configPanel.down('#revealvotesbtn').enable();
             
         }, me);
+
+        if ( this._revealVotes) {
+            votesPanel.add( {
+                html: '<div class="votestext">AVERAGE</div>'
+            });
+            var votesCount = votesFound.length, votesTotal = _.reduce(votesFound, function(result,vote, key) {
+                return {
+                    size: 'uk',
+                    value: result.value + vote.value
+                };
+            });
+            votesTotal = votesTotal.value;
+            
+            var nearest =  _.reduce(valueSeries, function(result, value, key) {
+                var oldOne = Math.abs(result.value - (votesTotal/(votesCount?votesCount:1)));
+                var newOne = Math.abs(value.value - (votesTotal/(votesCount?votesCount:1)));
+                return (newOne < oldOne)? value:result;
+            });
+
+            votesPanel.add ( {
+                html: '<div class="votestext">'+(votesFound.length?((me[userConfigName].useTShirt?(nearest.size+ ' ('+nearest.value+')'):nearest.value)):"-") + '</div>'
+            });
+            votesPanel.add ( {
+                
+                html: '<div class="votestext">'+(votesFound.length?(' ('+(votesTotal/(votesCount?votesCount:1)).toFixed(1)+')'): '&nbsp')+'</div>'
+            });
+        }
+        else {
+            votesPanel.add ( {
+                html: '<div class="votestext">&nbsp</div>'
+            });
+            votesPanel.add ( {
+                html: '<div class="votestext">&nbsp</div>'
+            });
+            votesPanel.add ( {
+                html: '<div class="votestext">&nbsp</div>'
+            });
+
+        }
+
     },
 
     _getVotes: function() {
@@ -1411,8 +1672,8 @@ Ext.define('Niks.Apps.PokerUserConfig', {
         me._revealVotes = false;
 
         var deferred = Ext.create('Deft.Deferred');
-        if (this.cardSelected === null) { 
-            Rally.ui.notify.Notifier.showWarning({message: 'No item selected'});
+        if (!this.cardSelected) { 
+            //Rally.ui.notify.Notifier.showWarning({message: 'No item selected'});
             deferred.resolve([]);
             return deferred.promise;
         }
@@ -1623,15 +1884,21 @@ Ext.define('Niks.Apps.PokerUserConfig', {
                         {
                             xtype: 'panel',
                             itemId: 'votespanel',
+
                             width: '100%',
                             bodyCls: 'userpanel',
-                            margin: '10 0 10 0',
+
                             layout: {
                                 type: 'table',
-                                columns: 3
+                                columns: 3,
+                                tdAttrs: {
+                                    style: {
+                                        textAlign: 'center',
+                                    }
+                                }
                             },
                             defaults: {
-                                bodyStyle: 'padding:10px;border:none'
+                                bodyStyle: 'border:none'
                             }
                         },
                         {
@@ -1822,7 +2089,7 @@ Ext.define('Niks.Apps.PokerUserConfig', {
                             } else {
                                 me[iterConfigName].currentIteration = record.get('_ref');
                             }
-                            me.app.fireEvent('configChanged');
+                            me.app.fireEvent(configChange);
                         }
                     }
                 });
@@ -1980,18 +2247,30 @@ Ext.define('Niks.Apps.PokerUserConfig', {
   animation: textBlink 1s step-start 0s infinite;
   -webkit-animation: textBlink 1s step-start 0s infinite;
 }
-.votingSizeClass {
-  font-size: 36px;
-  text-align: 'center';
-  color: #00a9e0;
-  width: 100;
+.votesize {
+  color: black;
+  width: 100px;
+  height: 30px;
+}
+.votedate {
+  color: black;
+  width: 140px;
+  height: 30px;
+}
+.votename {
+  color: black;
+  width: 160px;
+  height: 30px;
 }
 .buttonpushed {
   color: #78bee0;
 }
-.buttontext {
+.votestext {
   font-size: 24px;
   text-align: 'center';
+  border-style: solid none none none;
+  border-color: lightgrey;
+  border-width: 2px;
 }
 
     </style>

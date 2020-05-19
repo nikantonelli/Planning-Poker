@@ -31,6 +31,7 @@ Ext.define('Niks.Apps.PokerGameConfig', {
         if ((!this[mainConfigName].artefactTypes) || !this[mainConfigName].artefactTypes.length){
             this[mainConfigName].artefactTypes = ['UserStory', 'Defect'];
         }
+        this[mainConfigName].extraUsers = this[mainConfigName].extraUsers || [];
     },
 
     getNamedConfig: function(name) {
@@ -64,6 +65,29 @@ Ext.define('Niks.Apps.PokerGameConfig', {
         } else {
             this.userIDs.push(user[userIdField]);
         }
+    },
+
+    addExtraUser: function( user) {
+
+        if ( _.find( this[mainConfigName].extraUsers, {userOID: user.get(userIdField)})) {
+            console.log("Adding existing member - ignoring!");
+        } else {
+            this[mainConfigName].extraUsers.push({ 
+                userOID: user.get(userIdField),
+                displayName: user.get('DisplayName')
+            });
+        }
+        this._updateCurrentUserList();
+    },
+
+    removeExtraUser: function( user) {
+        storedUser = _.find( this[mainConfigName].extraUsers, {userOID: user.get(userIdField)});
+        if ( !storedUser) {
+            console.log("Removing non-existent member - ignoring!");
+        } else {
+            this[mainConfigName].extraUsers = _.without(this[mainConfigName].extraUsers, storedUser);
+        }
+        this._updateCurrentUserList();
     },
 
     getModerator: function() {
@@ -128,13 +152,26 @@ Ext.define('Niks.Apps.PokerGameConfig', {
                 this._encodeMsg(iterConfigName, JSON.stringify(this[iterConfigName]));
     },
 
+    _getCurrentUserList: function() {
+        var text = '';
+        _.each (this.getConfigValue('extraUsers'), function (user) {
+            text += user.displayName+",";
+        });
+        return text;
+    },
+
+    _updateCurrentUserList: function() {
+        this.getPanel().down('#extrauserlist').setValue(this._getCurrentUserList());
+        this.app.fireEvent(configChange);
+    },
+
     _createPanel: function() {
         var me = this;
         var panel = Ext.create('Ext.panel.Panel', {
 //        var panel = Ext.create('Ext.container.Container', {
             floating: true,
             draggable: true,
-            width: 400,
+            width: 500,
             height: 400,
             baseCls: 'configPanel',
             hidden: true,
@@ -145,8 +182,9 @@ Ext.define('Niks.Apps.PokerGameConfig', {
             xtype: 'field',
             id: 'curMod',
             fieldLabel: 'Current Moderator',
-            labelWidth: 200,            
-            margin: '10 0 10 20',
+            labelWidth: 180,
+            width: 460,
+            margin: '10 0 5 20',
             baseBodyCls: 'textfield',
             readOnly: true,
             value: me.moderatorUser? me.moderatorUser.get('UserName'): 'Not Set'
@@ -157,8 +195,9 @@ Ext.define('Niks.Apps.PokerGameConfig', {
             id: 'modChooser',
             fieldLabel: 'Change Moderator To',
             valueField: userIdField,
-            labelWidth: 200,
-            margin: '10 0 10 20',
+            labelWidth: 180,
+            width: 460,
+            margin: '5 0 5 20',
             autoSelect: false,
             listeners: {
                 //Setvalue fires when the thing is first set up with a null value.
@@ -188,8 +227,8 @@ Ext.define('Niks.Apps.PokerGameConfig', {
             fieldLabel: "Enable Iteration Selector",
             id: 'allowIterationSelector',
             value: me[mainConfigName].allowIterationSelector,
-            labelWidth: 200,
-            margin: '10 0 10 20',
+            labelWidth: 180,
+            margin: '5 0 0 20',
             listeners: {
                 change: function( tickbox, newV, oldV, opts) {
                     me[mainConfigName].allowIterationSelector = newV;
@@ -203,11 +242,12 @@ Ext.define('Niks.Apps.PokerGameConfig', {
             fieldLabel: "Use T-Shirt sizing",
             id: 'useTShirt',
             value: me[mainConfigName].useTShirt,
-            labelWidth: 200,
-            margin: '10 0 10 20',
+            labelWidth: 180,
+            margin: '5 0 0 20',
             listeners: {
                 change: function( tickbox, newV, oldV, opts) {
-                    me[mainConfigName].useTShirt = newV;
+                    me[mainConfigName].useTShirt = newV;                   
+                     me[userConfigName].useTShirt = newV;
                     me.app.fireEvent(configChange);
                 }
             }
@@ -217,8 +257,8 @@ Ext.define('Niks.Apps.PokerGameConfig', {
             xtype: 'textfield',
             baseCls: 'timerText',
             fieldLabel: 'Voting Time (min:sec)',
-            labelWidth: 200,
-            margin: '10 0 10 20',
+            labelWidth: 180,
+            margin: '5 0 5 20',
             value: me[mainConfigName].votingTime  || votingTime,
             validator: function(value) {
                 if (Ext.Date.parse(value, "i:s") !== undefined) {
@@ -233,14 +273,16 @@ Ext.define('Niks.Apps.PokerGameConfig', {
 
         panel.add( {
             xtype: 'container',
-            margin: '10 0 10 20',
+            margin: '5 0 5 20',
             layout: 'hbox',
             items: [
                 {
                     xtype: 'rallycheckboxfield',
-                    id: 'selectStories',
+                    itemId: 'selectStories',
                     fieldLabel: 'Stories',
-                    margin: '0 10 0 0',
+                    labelWidth: 80,
+                    labelAlign: 'right',
+                    margin: '0 60 0 0',
                     listeners: {
                         change: function(item, setting) {
                             if (!setting) {
@@ -256,13 +298,15 @@ Ext.define('Niks.Apps.PokerGameConfig', {
 
                         }
                     },
-                    value: _.indexOf(me[mainConfigName].artefactTypes, 'UserStory') > 0
+                    value: _.indexOf(me[mainConfigName].artefactTypes, 'UserStory') >= 0
                 },
                 {
                     xtype: 'rallycheckboxfield',
                     fieldLabel: 'Defects',
-                    id: 'selectDefects',
-                    margin: '0, 10 0 0',
+                    labelWidth: 80,
+                    labelAlign: 'right',
+                    itemId: 'selectDefects',
+                    margin: 0,
                     listeners: {
                         change: function(item, setting) {
                             if (!setting) {
@@ -278,7 +322,7 @@ Ext.define('Niks.Apps.PokerGameConfig', {
                             me.app.fireEvent(configChange);
                         }
                     },
-                     value: _.indexOf(me[mainConfigName].artefactTypes, 'Defect') > 0
+                     value: _.indexOf(me[mainConfigName].artefactTypes, 'Defect') >= 0
 
                 }
             ]
@@ -290,9 +334,9 @@ Ext.define('Niks.Apps.PokerGameConfig', {
             name: 'query',
             cls: 'query-field',
             labelAlign: 'top',
-            width: 360,
+            width: 460,
             value: me[mainConfigName].storyFilter,
-            margin: '0 20 0 20',
+            margin: '0 20 5 20',
             validateOnBlur: true,
             validateOnChange: false,
             validator: function(value) {
@@ -309,6 +353,62 @@ Ext.define('Niks.Apps.PokerGameConfig', {
             }        
         });
 
+        panel.add ( {
+            xtype: 'container',
+            layout: 'hbox',
+            items: [
+                {
+                    margin: '0 5 5 20',
+                    fieldLabel: 'Extra User',
+                    labelWidth: 60,
+                    width: 280,
+                    xtype: 'rallyusersearchcombobox',
+                    itemId: 'usersearchbox',
+                    storeConfig: {
+                        fetch: true
+                    },
+                    listeners: {
+                        select: function(selector, user) {
+                            panel.down('#addUserButton').enable();
+                            panel.down('#delUserButton').enable();
+                        }
+                    }
+                },
+                {
+                    xtype: 'rallybutton',
+                    text: 'Add',
+                    itemId: 'addUserButton',
+                    disabled: true,
+                    width: 80,
+                    margin: '0 5 5 5',
+                    handler: function() {
+                        me.app.fireEvent('adduser', panel.down('#usersearchbox').getRecord());
+                    }
+                },
+                {
+                    xtype: 'rallybutton',
+                    text: 'Remove',
+                    itemId: 'delUserButton',
+                    width: 80,
+                    disabled: true,
+                    margin: '0 5 5 5',
+                    handler: function() {
+                        me.app.fireEvent('removeuser', panel.down('#usersearchbox').getRecord());
+                    }
+                }
+            ]
+        });
+        
+        panel.add( {
+            xtype: 'textarea',
+            fieldLabel: 'Extra User List',
+            itemId: 'extrauserlist',
+            labelAlign: 'top',
+            width: 460,
+            value: me._getCurrentUserList(),
+            margin: '0 20 5 20',
+            readOnly: true   
+        });
         this.configPanel = panel;
         return panel;
     },

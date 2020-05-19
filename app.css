@@ -73,18 +73,32 @@
   -webkit-animation: textBlink 1s step-start 0s infinite;
 }
 
-.votingSizeClass {
-    font-size: 36px;
-    text-align: 'center';
-    color: rgb(0,169,224);
-    width: 100;
+.votesize {
+    color: black;
+    width: 100px;
+    height: 30px;
+}
+
+.votedate {
+    color: black;
+    width: 140px;
+    height: 30px;
+}
+
+.votename {
+    color: black;
+    width: 160px;
+    height: 30px;
 }
 
 .buttonpushed {
     color: rgb(120,190,224)
 }
 
-.buttontext {
+.votestext {
     font-size: 24px;
     text-align: 'center';
+    border-style: solid none none none;
+    border-color: lightgrey;
+    border-width: 2px;
 }

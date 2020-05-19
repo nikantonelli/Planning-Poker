@@ -1,7 +1,7 @@
 /** Event Passing */
 const modChange = 'moderatorchanged';
 const configChange = 'configchanged';
-const configSave = 'configsave';   //Save but don't change this game
+const configSave = 'configsaver';   //Save but don't change this game
 
 /** Configuration naming  */
 const mainConfigName = 'MainConfig';

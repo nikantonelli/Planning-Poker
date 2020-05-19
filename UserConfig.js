@@ -15,6 +15,19 @@ Ext.define('Niks.Apps.PokerUserConfig', {
 
     
     /* This is called from something that has got a Store record not just a model */
+    removeUser: function(userRecord) {
+        /** Check if the user is in the array. If not, then add */
+        if (!_.find(this.users, function(user) {
+            if (userRecord.get(userIdField) === user.get(userIdField)) {
+                return true;
+            }
+        })){
+            this.users = _.without(this.users, userRecord);
+        }
+    },
+
+
+    /* This is called from something that has got a Store record not just a model */
     addUser: function(userRecord) {
         /** Check if the user is in the array. If not, then add */
         if (!_.find(this.users, function(user) {
@@ -24,6 +37,18 @@ Ext.define('Niks.Apps.PokerUserConfig', {
         })){
             this.users.push(userRecord);
         }
+    },
+
+
+    removeExtraUser: function(userRecord){
+        this.removeUser(user);
+        this._setVotes([]); //Redo the voting panel - clears out all votes unfortunately.
+
+    },
+
+    addExtraUser: function(user) {
+        this.addUser(user);
+        this._setVotes([]); //Redo the voting panel - clears out all votes unfortunately.
     },
 
     restart: function(iAmMod) {
@@ -206,7 +231,6 @@ Ext.define('Niks.Apps.PokerUserConfig', {
             return me.cardSelected.story.get(cardIdField) === card.story.get(cardIdField);
         });
         storySelected.setVoteString(vote);
-        //debugger;
         this.getPanel().down('#votemessage').update('&larr; Vote '+(vote.tshirt?vote.size:vote.value).toString());
         this._checkVoteButton();
     },
@@ -248,8 +272,19 @@ Ext.define('Niks.Apps.PokerUserConfig', {
         });
     },
 
+    _setNameDiv: function(str) {
+        return '<div class ="votename"><b>'+str+'</b></div>';
+    },
+    _setCastDiv: function(str) {
+        return '<div class ="votesize"><b>'+str+'</b></div>';
+    },
+    _setDateDiv: function(str) {
+        return '<div class ="votedate"><b>'+str+'</b></div>';
+    },
+
     _setVotes: function(results) {
         var me = this;
+        if (!this.configPanel) { return;}
         var votesPanel = this.configPanel.down('#votespanel');
         votesPanel.removeAll();
          var showHideBtn = this.configPanel.down('#revealvotesbtn');
@@ -260,43 +295,84 @@ Ext.define('Niks.Apps.PokerUserConfig', {
             showHideBtn.setText('Hide Votes');
         }
         votesPanel.add( {
-            html: '<u>Team Member</u>',
-            width: 160
+            html: this._setNameDiv("<u>Team Member</u>")
         });
         votesPanel.add( {
-            html: '<u>Vote Cast</u>',
-            width: 100
+            html: this._setCastDiv("<u>Vote Cast</u>")
         });
         votesPanel.add( {
-            html: '<u>When</u>',
-            width: 140
+            html: this._setDateDiv("<u>When</u>")
         });
         
+        var votesFound = [];
+
         _.each(me.users, function(user) {
             var foundUserAnswer = _.find(results, function(result) {
                 return result.get('User').ObjectID === user.get('ObjectID');
             });
-            var answer = "&nbsp";
+            var vote = "&nbsp";
+            var answer = {};
             var timeAt = "&nbsp";
             if (foundUserAnswer !== undefined) {
                 answer = foundUserAnswer.get('Text');
                 answer =  JSON.parse(answer.split(pokerMsg.votePosted+':')[1].split('<')[0]);
-                answer = this._revealVotes?(answer.tshirt?(answer.size+ ' ('+answer.value+')'):answer.value).toString(): '?';
+                votesFound.push(answer);
+                vote = this._revealVotes?(answer.tshirt?(answer.size+ ' ('+answer.value+')'):answer.value).toString(): '?';
                 timeAt = foundUserAnswer.get('_CreatedAt');
             }
             votesPanel.add( {
-                html: user.get('_refObjectName'),
+                html: this._setNameDiv(user.get('_refObjectName')),
             });
             votesPanel.add( {
-                html: answer,
+                html: this._setCastDiv(vote),
             });
             votesPanel.add( {
-                html: timeAt,
+                html: this._setDateDiv(timeAt),
             });
             // Put this inside loop so that we don't have to check for null
             this.configPanel.down('#revealvotesbtn').enable();
             
         }, me);
+
+        if ( this._revealVotes) {
+            votesPanel.add( {
+                html: '<div class="votestext">AVERAGE</div>'
+            });
+            var votesCount = votesFound.length, votesTotal = _.reduce(votesFound, function(result,vote, key) {
+                return {
+                    size: 'uk',
+                    value: result.value + vote.value
+                };
+            });
+            votesTotal = votesTotal.value;
+            
+            var nearest =  _.reduce(valueSeries, function(result, value, key) {
+                var oldOne = Math.abs(result.value - (votesTotal/(votesCount?votesCount:1)));
+                var newOne = Math.abs(value.value - (votesTotal/(votesCount?votesCount:1)));
+                return (newOne < oldOne)? value:result;
+            });
+
+            votesPanel.add ( {
+                html: '<div class="votestext">'+(votesFound.length?((me[userConfigName].useTShirt?(nearest.size+ ' ('+nearest.value+')'):nearest.value)):"-") + '</div>'
+            });
+            votesPanel.add ( {
+                
+                html: '<div class="votestext">'+(votesFound.length?(' ('+(votesTotal/(votesCount?votesCount:1)).toFixed(1)+')'): '&nbsp')+'</div>'
+            });
+        }
+        else {
+            votesPanel.add ( {
+                html: '<div class="votestext">&nbsp</div>'
+            });
+            votesPanel.add ( {
+                html: '<div class="votestext">&nbsp</div>'
+            });
+            votesPanel.add ( {
+                html: '<div class="votestext">&nbsp</div>'
+            });
+
+        }
+
     },
 
     _getVotes: function() {
@@ -305,8 +381,8 @@ Ext.define('Niks.Apps.PokerUserConfig', {
         me._revealVotes = false;
 
         var deferred = Ext.create('Deft.Deferred');
-        if (this.cardSelected === null) { 
-            Rally.ui.notify.Notifier.showWarning({message: 'No item selected'});
+        if (!this.cardSelected) { 
+            //Rally.ui.notify.Notifier.showWarning({message: 'No item selected'});
             deferred.resolve([]);
             return deferred.promise;
         }
@@ -517,15 +593,21 @@ Ext.define('Niks.Apps.PokerUserConfig', {
                         {
                             xtype: 'panel',
                             itemId: 'votespanel',
+
                             width: '100%',
                             bodyCls: 'userpanel',
-                            margin: '10 0 10 0',
+
                             layout: {
                                 type: 'table',
-                                columns: 3
+                                columns: 3,
+                                tdAttrs: {
+                                    style: {
+                                        textAlign: 'center',
+                                    }
+                                }
                             },
                             defaults: {
-                                bodyStyle: 'padding:10px;border:none'
+                                bodyStyle: 'border:none'
                             }
                         },
                         {
