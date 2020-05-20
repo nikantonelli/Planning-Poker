@@ -74,7 +74,7 @@ Ext.define('Niks.Apps.PokerGameConfig', {
         } else {
             this[mainConfigName].extraUsers.push({ 
                 userOID: user.get(userIdField),
-                displayName: user.get('DisplayName')
+                displayName: user.get('_refObjectName')
             });
         }
         this._updateCurrentUserList();
@@ -365,7 +365,7 @@ Ext.define('Niks.Apps.PokerGameConfig', {
                     xtype: 'rallyusersearchcombobox',
                     itemId: 'usersearchbox',
                     storeConfig: {
-                        fetch: true
+                        fetch: ['_ref', '_refObjectName', userIdField, 'UserName', 'DisplayName']
                     },
                     listeners: {
                         select: function(selector, user) {

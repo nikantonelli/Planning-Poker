@@ -17,12 +17,15 @@ Ext.define('Niks.Apps.PokerUserConfig', {
     /* This is called from something that has got a Store record not just a model */
     removeUser: function(userRecord) {
         /** Check if the user is in the array. If not, then add */
-        if (!_.find(this.users, function(user) {
+        var existingUser = _.find(this.users, function(user) {
             if (userRecord.get(userIdField) === user.get(userIdField)) {
                 return true;
             }
-        })){
-            this.users = _.without(this.users, userRecord);
+        });
+        if (existingUser !== undefined){
+            this.users = _.filter(this.users, function(user) {
+                return userRecord.get(userIdField) !== user.get(userIdField);
+            });
         }
     },
 
@@ -31,7 +34,7 @@ Ext.define('Niks.Apps.PokerUserConfig', {
     addUser: function(userRecord) {
         /** Check if the user is in the array. If not, then add */
         if (!_.find(this.users, function(user) {
-            if (userRecord.get('ObjectID') === user.get('ObjectID')) {
+            if (userRecord.get('ObjectID') === user.get(userIdField)) {
                 return true;
             }
         })){
@@ -41,7 +44,7 @@ Ext.define('Niks.Apps.PokerUserConfig', {
 
 
     removeExtraUser: function(userRecord){
-        this.removeUser(user);
+        this.removeUser(userRecord);
         this._setVotes([]); //Redo the voting panel - clears out all votes unfortunately.
 
     },

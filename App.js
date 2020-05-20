@@ -93,15 +93,14 @@ Ext.define('Niks.Apps.PlanningGame', {
 
         configchanged: function() {
             var me = this;
+            me._UC.setConfig(me._GC.getNamedConfig(userConfigName)); 
+            me._MC.setConfig(me._GC.getNamedConfig(userConfigName)); 
+            me._IC.setConfig(me._GC.getNamedConfig(iterConfigName));
             //GC itself updates directly from panel, so no need to fetch here
             this._saveProjectConfig().then({
                 success: function(result) {
-                    me._GC.initialiseConfig(result);
                     /** Config saved and restart from scratch */
-                    me._UC.setConfig(me._GC.getNamedConfig(userConfigName)); 
-                    me._MC.setConfig(me._GC.getNamedConfig(userConfigName)); 
-                    me._IC.setConfig(me._GC.getNamedConfig(iterConfigName));
-                    this._reloadGame();
+                    me._reloadGame();
                 },
                 failure: function(e) {
                     console.log("Failed to save project config",e);
@@ -374,7 +373,7 @@ Ext.define('Niks.Apps.PlanningGame', {
 
         Ext.create('Rally.data.wsapi.Store', {
             model: 'User',
-            fetch: true,
+            fetch: [userIdField, 'UserName', 'DisplayName'],
             autoLoad: true,
             filters:filters,
             listeners: {
@@ -399,7 +398,7 @@ Ext.define('Niks.Apps.PlanningGame', {
         var record = this.projectStore.getRecords()[0];
         if ( record.get('TeamMembers').Count > 0) {
             record.getCollection('TeamMembers').load( {
-                fetch: true,
+                fetch: [userIdField, 'UserName', 'DisplayName'],
                 filters: [
                     {
                         property: 'Disabled',
@@ -616,12 +615,12 @@ Ext.define('Niks.Apps.PlanningGame', {
     _failedSave: 0,
 
     /** Save the current config */
-    _saveProjectConfig: function(existingDefer) {
+    _saveProjectConfig: function() {
         var me = this;
         this._GC.updateNamedConfig(iterConfigName, this._IC.getConfig());
         this._GC.updateNamedConfig(userConfigName, this._MC.getConfig());
 
-        var deferred = (existingDefer === undefined) ? Ext.create("Deft.Deferred") : existingDefer;
+        var deferred = Ext.create("Deft.Deferred");
         var currentConfig = this._GC.getGameConfig();
 
         var record = this.projectStore.getRecords()[0];
@@ -633,12 +632,7 @@ Ext.define('Niks.Apps.PlanningGame', {
                 deferred.resolve(currentConfig);
             },
             failure: function() {
-                if (this._failedSave < this.self.SAVE_FAIL_RETRIES) {
-                    this._saveProjectConfig(deferred);
-                }
-                else {
-                    deferred.reject("Failed to save Project Config");
-                }
+                deferred.reject("Failed to save Project Config");
             },
             scope: me
         });
