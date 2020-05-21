@@ -179,7 +179,12 @@
         },
         addartefact: function(story) {
             this._UC.addStory(story);
-            this._GC.addStory(story);
+            this._GC.addStory(story, true);
+        },
+        
+        createartefact: function(story) {
+            this._UC.addStory(story);
+            this._GC.addStory(story, false);
         },
         removeartefact: function(story) {
             this._UC.delStory(story);
@@ -1390,7 +1395,7 @@ Ext.define('Niks.Apps.PokerGameConfig', {
                                 record.get('FormattedID'),
                                 record.get('Name')
                             ));
-                            me.app.fireEvent('addartefact', record);
+                            me.app.fireEvent('refresh');
                         }
                     }
                 },{

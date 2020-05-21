@@ -170,7 +170,12 @@ Ext.define('Niks.Apps.PlanningGame', {
         },
         addartefact: function(story) {
             this._UC.addStory(story);
-            this._GC.addStory(story);
+            this._GC.addStory(story, true);
+        },
+        
+        createartefact: function(story) {
+            this._UC.addStory(story);
+            this._GC.addStory(story, false);
         },
         removeartefact: function(story) {
             this._UC.delStory(story);

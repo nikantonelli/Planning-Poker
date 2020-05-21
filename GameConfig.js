@@ -559,7 +559,7 @@ Ext.define('Niks.Apps.PokerGameConfig', {
                                 record.get('FormattedID'),
                                 record.get('Name')
                             ));
-                            me.app.fireEvent('addartefact', record);
+                            me.app.fireEvent('refresh');
                         }
                     }
                 },{
