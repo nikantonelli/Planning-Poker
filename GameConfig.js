@@ -552,7 +552,7 @@ Ext.define('Niks.Apps.PokerGameConfig', {
                     xtype: 'rallyaddnew',
                     margin: '5 0 5 20',
                     recordTypes: ['User Story', 'Defect'],
-                    ignoredRequiredFields: ['Name', 'ScheduleState', 'Project', 'Owner'],
+                    ignoredRequiredFields: ['Name', 'ScheduleState', 'Project', 'Owner', 'FlowState'],
                     listeners: {
                         create: function(addnew, record) {
                             Rally.ui.notify.Notifier.show(Ext.String.format('Added {0}: {1}',
