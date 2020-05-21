@@ -564,7 +564,7 @@ Ext.define('Niks.Apps.PokerGameConfig', {
                     }
                 },{
                     xtype: 'textarea',
-                    fieldLabel: 'Additional Story List',
+                    fieldLabel: 'Additional Artefact List',
                     itemId: 'extrastorylist',
                     labelAlign: 'top',
                     width: 460,
