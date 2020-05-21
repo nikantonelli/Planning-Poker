@@ -227,10 +227,15 @@ Ext.define('Niks.Apps.PokerGameConfig', {
         panel.add( {
             xtype: 'container',
             layout: 'vbox',
+            style: {
+                border: 'none'
+            },
             margin: '5 0 5 20',
             items: [
                 {
-                    html: '<div class="configPanel definedfield"><strong>Game Settings:</strong></div>'
+                    xtype: 'text',
+                    text: 'Game Settings:',
+                    cls: 'configPanelTitle'
                 },
                 {
                     xtype: 'field',
@@ -329,7 +334,9 @@ Ext.define('Niks.Apps.PokerGameConfig', {
             margin: '5 0 5 20',
             items: [
                 {
-                    html: '<div class="configPanel definedfield"><strong>Artefact Filtering:</strong></div>'
+                    xtype: 'text',
+                    text: 'Artefact Filtering:',
+                    cls: 'configPanelTitle'
                 },
                 {
                     xtype: 'container',
@@ -421,7 +428,9 @@ Ext.define('Niks.Apps.PokerGameConfig', {
 
             items: [
                 {
-                    html: '<div class="configPanel definedfield"><strong>Additional Voters:</strong></div>'
+                    xtype: 'text',
+                    text: 'Additional Voters:',
+                    cls: 'configPanelTitle'
                 },
                 {
                     xtype: 'container',
@@ -490,7 +499,9 @@ Ext.define('Niks.Apps.PokerGameConfig', {
             margin: '5 0 5 18',
             items: [
                 {
-                    html: '<div class="configPanel definedfield"><strong>Priority Artefacts:</strong></div>'
+                    xtype: 'text',
+                    text: 'Priority Artefacts:',
+                    cls: 'configPanelTitle'
                 },
                 {
                     xtype: 'container',

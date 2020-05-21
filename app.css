@@ -18,7 +18,8 @@
     border-style: none none solid none;
     border-color: black;
     border-width: 1px;
-    font-size: 18px;    
+    font-size: 14px;
+    background-color: powderblue;
 }
 
 .definedfield {
