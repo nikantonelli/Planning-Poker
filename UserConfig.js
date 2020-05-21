@@ -68,18 +68,43 @@ Ext.define('Niks.Apps.PokerUserConfig', {
     //Stories can come as the form of the records in a store
     loadStories: function( stories ) {
         var me = this;
-        if (me.getPanel().down('#cardspace')) { me.getPanel().down('#cardspace').removeAll(false);}
-        me.stories = [];
+//        if (me.getPanel().down('#cardspace')) { me.getPanel().down('#cardspace').removeAll(false);}
         _.each(stories, function(story) {
-            me._addCardToPage(story);
+            me.addStory(story);
         });
     },
 
-    _addCardToPage: function(story) {
-        var page = this.getPanel();
-       var cs = page.down('#cardspace');
+    addStory: function(story) {
+        //If story already in the list, return false and do nothing else
+        if ( _.find(this.stories, function( existing) {
+            if ( existing.story.get(cardIdField) === story.get(cardIdField)) {
+                return true;
+            }
+        })) {
+            return false;
+        }
+        var card = this._createCard(story);
+        var cs = this.getPanel().down('#cardspace');
+        cs.add(card);
+        card.setStory(story);
+        this.stories.push( card );
+        return true;
+    },
 
-        var card = Ext.create('Niks.Apps.PokerCard', {
+    delStory: function(story) {
+        var card = this.getPanel().down('#card-'+story.get(cardIdField));
+        if ( card ) {
+            card.destroy();        
+            this.stories = _.filter(this.stories, function(existing) {
+                return ( existing.story.get(cardIdField) !== story.get(cardIdField));
+            });
+            return true;
+        }
+        return false;
+    },
+
+    _createCard: function(story) {
+        return  Ext.create('Niks.Apps.PokerCard', {
             title: Ext.String.format(
                 '<table><tr><td>' +
                 '<a target="_blank" href={1}>{0} </a>' + 
@@ -93,10 +118,8 @@ Ext.define('Niks.Apps.PokerUserConfig', {
                         story.get('Name')),
             width: cardWidth,
             height: cardHeight,
+            itemId: 'card-'+story.get(cardIdField)
         });
-        cs.add(card);
-        card.setStory(story);
-        this.stories.push( card );
     },
 
     /** Mainconfig comes over from the app so that we can set the time up 

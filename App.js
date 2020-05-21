@@ -167,23 +167,25 @@ Ext.define('Niks.Apps.PlanningGame', {
                     }
                 });
             }
+        },
+        addartefact: function(story) {
+            this._UC.addStory(story);
+            this._GC.addStory(story);
+        },
+        removeartefact: function(story) {
+            this._UC.delStory(story);
+            this._GC.delStory(story);
         }
     },
 
     _voteSelected: null,
     _storySelected: null,
 
-    _processStoryChanges: function() {
-        //FIXME:
-        this._reloadGame();
-    },
-
     _reloadGame: function() {
         /** Clear out existing data and settings 
          * We will need to refetch the config from the project 
          * */
-
-        //this._UC.restart(this._iAmModerator());
+        this._extraArtefacts = [];
         this._kickOff();
     },
 
@@ -208,11 +210,20 @@ Ext.define('Niks.Apps.PlanningGame', {
             this.userPage = this._UC.restart(false);
             this.userPage.show();
         }
-        if ( this._storyStore) {
-            if (iAmMod) {
-                this._MC.loadStories(this._storyStore.getRecords());
-            }
-            this._UC.loadStories(this._storyStore.getRecords());
+        if (iAmMod) {
+            this._sendArtefacts(this._MC);
+        }
+        this._sendArtefacts(this._UC);        
+    },
+
+    _sendArtefacts: function( target ) {
+        if (this._extraArtefacts) {
+            _.each(this._extraArtefacts, function (artefact) {
+                target.addStory(artefact);
+            });
+        }
+        if ( this._artefactStore) {
+            target.loadStories(this._artefactStore.getRecords());
         }
     },
 
@@ -291,10 +302,13 @@ Ext.define('Niks.Apps.PlanningGame', {
                     });
                 }
                 filters = Rally.data.wsapi.Filter.and(filters) || [];
-        
-                me._getStoryStore(filters).then ({
-                    success: function(store) {
-                        me._storyStore = store;
+                var ffuncs = [];
+                ffuncs.push(me._getStoryStore(filters));
+                ffuncs.push(me._getExtraStories());
+                Deft.Promise.all(ffuncs).then ({
+                    success: function(results) {
+                        me._artefactStore = results[0];
+                        me._extraArtefacts = results[1];
                     },
                     failure: function(e) {
                         console.log("Fatal failure to load stories. Clean out the project config and start again", e);
@@ -308,6 +322,37 @@ Ext.define('Niks.Apps.PlanningGame', {
             }
         });
 
+    },
+
+    _getExtraStories: function() {
+        var deferred = Ext.create('Deft.Deferred');
+        if (this._GC.getConfigValue('extraStories').length){
+            Ext.create('Rally.data.wsapi.artifact.Store',{
+                models: this._GC.getConfigValue('artefactTypes'),
+                context: this.getContext().getDataContext(),
+                autoLoad: true,
+                pageSize: storyFetchLimit,
+                limit: storyFetchLimit,
+                filters: [
+                    {
+                        property: storyIdField,
+                        operator: 'in',
+                        value: _.pluck(this._GC.getConfigValue('extraStories'), 'storyOID')
+                    }
+                ],
+                listeners: {
+                    load: function(store, records, success) {
+                        if (success) { deferred.resolve(records);}
+                        else { deferred.reject();}
+                    }
+                },
+                scope: this
+            });
+        }
+        else {
+            deferred.resolve([]);
+        }
+        return deferred.promise;
     },
 
     _loadGameConfig: function() {
@@ -450,7 +495,16 @@ Ext.define('Niks.Apps.PlanningGame', {
             project: me.getContext().getProject()
         });
 
-        this._startGame();
+        Rally.data.ModelFactory.getModels({
+            types: ['UserStory', 'Defect'],
+            context: me.getContext().getDataContext(),
+            success: function(models) {
+                me._GC.setModels(models);
+                me._startGame();            
+            },
+            scope: me
+        });
+
     },
 
     _startGame: function() {

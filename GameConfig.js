@@ -18,6 +18,11 @@ Ext.define('Niks.Apps.PokerGameConfig', {
 
     userIDs: [],            /** Only contains the reference to the user only so that we can get info from UserConfig */
     moderatorUser: null,    /** Full object for the moderator */
+    models: [],
+
+    setModels: function(models) {
+        this.models = models;
+    },
 
     /** We know of three config types right now: MainConfig, IterationConfig, UserConfig */
     initialiseConfig: function(fieldText) {
@@ -32,6 +37,7 @@ Ext.define('Niks.Apps.PokerGameConfig', {
             this[mainConfigName].artefactTypes = ['UserStory', 'Defect'];
         }
         this[mainConfigName].extraUsers = this[mainConfigName].extraUsers || [];
+        this[mainConfigName].extraStories = this[mainConfigName].extraStories || [];
     },
 
     getNamedConfig: function(name) {
@@ -59,6 +65,33 @@ Ext.define('Niks.Apps.PokerGameConfig', {
         return JSON.parse(configs[requiredType] || "{}");
     },
 
+    addStory: function(story) {   //Passed in a user record
+        if ( _.find(  this[mainConfigName].extraStories, function(existing) {
+                return existing.storyOID === story.get(storyIdField);
+            })
+            ) {
+                console.log("Adding existing story - ignoring!");
+            
+        } else {
+            this[mainConfigName].extraStories.push({
+                storyOID: story.get(storyIdField),
+                storyFID: story.get('FormattedID'),
+                storyName: story.get('Name')
+            });
+            this._updateCurrentStoryList();
+        }
+    },
+    
+    delStory: function( story) {
+        var storedStory = _.find( this[mainConfigName].extraStories, {storyOID: story.get(storyIdField)});
+        if ( !storedStory) {
+            console.log("Removing non-existent story - ignoring!");
+        } else {
+            this[mainConfigName].extraStories = _.without(this[mainConfigName].extraStories, storedStory);
+            this._updateCurrentStoryList();
+        }
+        
+    },
     addUser: function(user) {   //Passed in a user record
         if ( _.find( this.userIDs, {userOID: user.get(userIdField)})) {
             console.log("Adding existing member - ignoring!");
@@ -76,18 +109,20 @@ Ext.define('Niks.Apps.PokerGameConfig', {
                 userOID: user.get(userIdField),
                 displayName: user.get('_refObjectName')
             });
+            this._updateCurrentUserList();
         }
-        this._updateCurrentUserList();
+
     },
 
     removeExtraUser: function( user) {
-        storedUser = _.find( this[mainConfigName].extraUsers, {userOID: user.get(userIdField)});
+        var storedUser = _.find( this[mainConfigName].extraUsers, {userOID: user.get(userIdField)});
         if ( !storedUser) {
             console.log("Removing non-existent member - ignoring!");
         } else {
             this[mainConfigName].extraUsers = _.without(this[mainConfigName].extraUsers, storedUser);
+            this._updateCurrentUserList();
         }
-        this._updateCurrentUserList();
+        
     },
 
     getModerator: function() {
@@ -155,13 +190,25 @@ Ext.define('Niks.Apps.PokerGameConfig', {
     _getCurrentUserList: function() {
         var text = '';
         _.each (this.getConfigValue('extraUsers'), function (user) {
-            text += user.displayName+",";
+            text += user.displayName+", ";
+        });
+        return text;
+    },
+
+    _getCurrentStoryList: function() {
+        var text = '';
+        _.each (this.getConfigValue('extraStories'), function (story) {
+            text += story.storyFID+", ";
         });
         return text;
     },
 
     _updateCurrentUserList: function() {
         this.getPanel().down('#extrauserlist').setValue(this._getCurrentUserList());
+        this.app.fireEvent(configChange);
+    },
+    _updateCurrentStoryList: function() {
+        this.getPanel().down('#extrastorylist').setValue(this._getCurrentStoryList());
         this.app.fireEvent(configChange);
     },
 
@@ -171,243 +218,350 @@ Ext.define('Niks.Apps.PokerGameConfig', {
 //        var panel = Ext.create('Ext.container.Container', {
             floating: true,
             draggable: true,
-            width: 500,
-            height: 400,
+            width: 540,
             baseCls: 'configPanel',
             hidden: true,
             closable: true,
             closeAction: 'hide',
         });
         panel.add( {
-            xtype: 'field',
-            id: 'curMod',
-            fieldLabel: 'Current Moderator',
-            labelWidth: 180,
-            width: 460,
-            margin: '10 0 5 20',
-            baseBodyCls: 'textfield',
-            readOnly: true,
-            value: me.moderatorUser? me.moderatorUser.get('UserName'): 'Not Set'
-
-        });
-        panel.add( {
-            xtype: 'rallyusercombobox',
-            id: 'modChooser',
-            fieldLabel: 'Change Moderator To',
-            valueField: userIdField,
-            labelWidth: 180,
-            width: 460,
+            xtype: 'container',
+            layout: 'vbox',
             margin: '5 0 5 20',
-            autoSelect: false,
-            listeners: {
-                //Setvalue fires when the thing is first set up with a null value.
-                select: function(entry) {
-                    if (entry.value !== null) {
-                        me.setModerator(entry.lastSelection[0]);
-                        panel.down('#curMod').setValue(me.moderatorUser.get('UserName'));
-                        Ext.create('Rally.ui.dialog.ConfirmDialog', {
-                                title: "New Moderator",
-                                message: "Restart session?",
-                                listeners: {
-                                    confirm: function() {
-                                        //Set user up as moderator
-                                        me.app.fireEvent(configChange);
-                                        me.hidePanel();
+            items: [
+                {
+                    html: '<div class="configPanel definedfield"><strong>Game Settings:</strong></div>'
+                },
+                {
+                    xtype: 'field',
+                    id: 'curMod',
+                    fieldLabel: 'Current Moderator',
+                    labelWidth: 180,
+                    width: 460,
+                    margin: '10 0 5 20',
+                    baseBodyCls: 'textfield',
+                    readOnly: true,
+                    value: me.moderatorUser? me.moderatorUser.get('UserName'): 'Not Set'
+
+                },
+                {
+                    xtype: 'rallyusercombobox',
+                    id: 'modChooser',
+                    fieldLabel: 'Change Moderator To',
+                    valueField: userIdField,
+                    labelWidth: 180,
+                    width: 460,
+                    margin: '0 0 5 20',
+                    autoSelect: false,
+                    listeners: {
+                        //Setvalue fires when the thing is first set up with a null value.
+                        select: function(entry) {
+                            if (entry.value !== null) {
+                                me.setModerator(entry.lastSelection[0]);
+                                panel.down('#curMod').setValue(me.moderatorUser.get('UserName'));
+                                Ext.create('Rally.ui.dialog.ConfirmDialog', {
+                                        title: "New Moderator",
+                                        message: "Restart session?",
+                                        listeners: {
+                                            confirm: function() {
+                                                //Set user up as moderator
+                                                me.app.fireEvent(configChange);
+                                                me.hidePanel();
+                                            }
+                                        }
                                     }
-                                }
+                                );
                             }
-                        );
+                        },
                     }
                 },
-            }
-        });
-
-        panel.add( {
-            xtype: 'rallycheckboxfield',
-            fieldLabel: "Enable Iteration Selector",
-            id: 'allowIterationSelector',
-            value: me[mainConfigName].allowIterationSelector,
-            labelWidth: 180,
-            margin: '5 0 0 20',
-            listeners: {
-                change: function( tickbox, newV, oldV, opts) {
-                    me[mainConfigName].allowIterationSelector = newV;
-                    me.app.fireEvent(configChange);
+                {
+                    xtype: 'rallycheckboxfield',
+                    fieldLabel: "Enable Iteration Selector",
+                    id: 'allowIterationSelector',
+                    value: me[mainConfigName].allowIterationSelector,
+                    labelWidth: 180,
+                    margin: '0 0 5 20',
+                    listeners: {
+                        change: function( tickbox, newV, oldV, opts) {
+                            me[mainConfigName].allowIterationSelector = newV;
+                            me.app.fireEvent(configChange);
+                        }
+                    }
+                },
+                {
+                    xtype: 'rallycheckboxfield',
+                    fieldLabel: "Use T-Shirt sizing",
+                    id: 'useTShirt',
+                    value: me[mainConfigName].useTShirt,
+                    labelWidth: 180,
+                    margin: '0 0 5 20',
+                    listeners: {
+                        change: function( tickbox, newV, oldV, opts) {
+                            me[mainConfigName].useTShirt = newV;                   
+                            me[userConfigName].useTShirt = newV;
+                            me.app.fireEvent(configChange);
+                        }
+                    }
+                },
+                {
+                    xtype: 'textfield',
+                    baseCls: 'timerText',
+                    fieldLabel: 'Voting Time (min:sec)',
+                    labelWidth: 180,
+                    margin: '0 0 5 20',
+                    value: me[mainConfigName].votingTime  || votingTime,
+                    validator: function(value) {
+                        if (Ext.Date.parse(value, "i:s") !== undefined) {
+                            me[mainConfigName].votingTime = value;
+                            me.app.fireEvent(configSave);   //Save but don't change this game
+                            return true;
+                        }
+                        return false;
+                    }
                 }
-            }
-        });
-
-        panel.add( {
-            xtype: 'rallycheckboxfield',
-            fieldLabel: "Use T-Shirt sizing",
-            id: 'useTShirt',
-            value: me[mainConfigName].useTShirt,
-            labelWidth: 180,
-            margin: '5 0 0 20',
-            listeners: {
-                change: function( tickbox, newV, oldV, opts) {
-                    me[mainConfigName].useTShirt = newV;                   
-                     me[userConfigName].useTShirt = newV;
-                    me.app.fireEvent(configChange);
-                }
-            }
-        });
-
-        panel.add( {
-            xtype: 'textfield',
-            baseCls: 'timerText',
-            fieldLabel: 'Voting Time (min:sec)',
-            labelWidth: 180,
-            margin: '5 0 5 20',
-            value: me[mainConfigName].votingTime  || votingTime,
-            validator: function(value) {
-                if (Ext.Date.parse(value, "i:s") !== undefined) {
-                    me[mainConfigName].votingTime = value;
-                    me.app.fireEvent(configSave);   //Save but don't change this game
-                    return true;
-                }
-                return false;
-            }
-            
+            ]            
         });
 
         panel.add( {
             xtype: 'container',
+            layout: 'vbox',
             margin: '5 0 5 20',
-            layout: 'hbox',
             items: [
                 {
-                    xtype: 'rallycheckboxfield',
-                    itemId: 'selectStories',
-                    fieldLabel: 'Stories',
-                    labelWidth: 80,
-                    labelAlign: 'right',
-                    margin: '0 60 0 0',
-                    listeners: {
-                        change: function(item, setting) {
-                            if (!setting) {
-                                me[mainConfigName].artefactTypes = _.without(me[mainConfigName].artefactTypes, 'UserStory');
-                                if ( me.getPanel().down('#selectDefects').getValue() === false ){
-                                    me.getPanel().down('#selectDefects').setValue(true);
-                                }
-                            }
-                            else {
-                                me[mainConfigName].artefactTypes = _.union(me[mainConfigName].artefactTypes, ['UserStory']);
-                            }
-                            me.app.fireEvent(configChange);
-
-                        }
-                    },
-                    value: _.indexOf(me[mainConfigName].artefactTypes, 'UserStory') >= 0
+                    html: '<div class="configPanel definedfield"><strong>Artefact Filtering:</strong></div>'
                 },
                 {
-                    xtype: 'rallycheckboxfield',
-                    fieldLabel: 'Defects',
-                    labelWidth: 80,
-                    labelAlign: 'right',
-                    itemId: 'selectDefects',
-                    margin: 0,
-                    listeners: {
-                        change: function(item, setting) {
-                            if (!setting) {
-                                me[mainConfigName].artefactTypes = _.without(me[mainConfigName].artefactTypes, 'Defect');
-                                if ( me.getPanel().down('#selectStories').getValue() === false ){
-                                    me.getPanel().down('#selectStories').setValue(true);
+                    xtype: 'container',
+
+                    layout: 'hbox',
+                    items: [
+                        {
+                            xtype: 'rallycheckboxfield',
+                            itemId: 'selectStories',
+                            fieldLabel: 'Stories',
+                            labelWidth: 80,
+                            labelAlign: 'right',
+                            listeners: {
+                                change: function(item, setting) {
+                                    if (!setting) {
+                                        me[mainConfigName].artefactTypes = _.without(me[mainConfigName].artefactTypes, 'UserStory');
+                                        if ( me.getPanel().down('#selectDefects').getValue() === false ){
+                                            me.getPanel().down('#selectDefects').setValue(true);
+                                        }
+                                    }
+                                    else {
+                                        me[mainConfigName].artefactTypes = _.union(me[mainConfigName].artefactTypes, ['UserStory']);
+                                    }
+                                    me.app.fireEvent(configChange);
+
                                 }
+                            },
+                            value: _.indexOf(me[mainConfigName].artefactTypes, 'UserStory') >= 0
+                        },
+                        {
+                            xtype: 'rallycheckboxfield',
+                            fieldLabel: 'Defects',
+                            labelWidth: 80,
+                            labelAlign: 'right',
+                            itemId: 'selectDefects',
+                            margin: 0,
+                            listeners: {
+                                change: function(item, setting) {
+                                    if (!setting) {
+                                        me[mainConfigName].artefactTypes = _.without(me[mainConfigName].artefactTypes, 'Defect');
+                                        if ( me.getPanel().down('#selectStories').getValue() === false ){
+                                            me.getPanel().down('#selectStories').setValue(true);
+                                        }
 
-                            }
-                            else {
-                                me[mainConfigName].artefactTypes = _.union(me[mainConfigName].artefactTypes, ['Defect']);
-                            }
-                            me.app.fireEvent(configChange);
+                                    }
+                                    else {
+                                        me[mainConfigName].artefactTypes = _.union(me[mainConfigName].artefactTypes, ['Defect']);
+                                    }
+                                    me.app.fireEvent(configChange);
+                                }
+                            },
+                            value: _.indexOf(me[mainConfigName].artefactTypes, 'Defect') >= 0
+
                         }
-                    },
-                     value: _.indexOf(me[mainConfigName].artefactTypes, 'Defect') >= 0
-
+                    ]
+                },
+                {
+                    xtype: 'textarea',
+                    fieldLabel: 'Query Filter',
+                    name: 'query',
+                    cls: 'query-field',
+                    labelAlign: 'top',
+                    width: 460,
+                    value: me[mainConfigName].storyFilter,
+                    margin: '0 20 5 20',
+                    validateOnBlur: true,
+                    validateOnChange: false,
+                    validator: function(value) {
+                        try {
+                            if (value) {
+                                Rally.data.wsapi.Filter.fromQueryString(value);
+                            }
+                            me[mainConfigName].storyFilter = value;
+                            me.app.fireEvent(configChange);
+                            return true;
+                        } catch (e) {
+                            return e.message;
+                        }
+                    }      
                 }
-            ]
-        });
-
-        panel.add( {
-            xtype: 'textarea',
-            fieldLabel: 'Artefact Filter',
-            name: 'query',
-            cls: 'query-field',
-            labelAlign: 'top',
-            width: 460,
-            value: me[mainConfigName].storyFilter,
-            margin: '0 20 5 20',
-            validateOnBlur: true,
-            validateOnChange: false,
-            validator: function(value) {
-                try {
-                    if (value) {
-                        Rally.data.wsapi.Filter.fromQueryString(value);
-                    }
-                    me[mainConfigName].storyFilter = value;
-                    me.app.fireEvent(configChange);
-                    return true;
-                } catch (e) {
-                    return e.message;
-                }
-            }        
+            ]  
         });
 
         panel.add ( {
             xtype: 'container',
-            layout: 'hbox',
+            layout: 'vbox',
+            width: '100%',
+            margin: '5 0 5 20',
+
             items: [
                 {
-                    margin: '0 5 5 20',
-                    fieldLabel: 'Extra User',
-                    labelWidth: 60,
-                    width: 280,
-                    xtype: 'rallyusersearchcombobox',
-                    itemId: 'usersearchbox',
-                    storeConfig: {
-                        fetch: ['_ref', '_refObjectName', userIdField, 'UserName', 'DisplayName']
-                    },
-                    listeners: {
-                        select: function(selector, user) {
-                            panel.down('#addUserButton').enable();
-                            panel.down('#delUserButton').enable();
+                    html: '<div class="configPanel definedfield"><strong>Additional Voters:</strong></div>'
+                },
+                {
+                    xtype: 'container',
+            
+                    layout: 'hbox',
+                    items: [
+                        
+                        {
+                            fieldLabel: 'Choose',
+                            margin: '5 0 5 20',
+                            labelWidth: 40,
+                            width: 300,
+                            xtype: 'rallyusersearchcombobox',
+                            itemId: 'usersearchbox',
+                            storeConfig: {
+                                fetch: ['_ref', '_refObjectName', userIdField, 'UserName', 'DisplayName']
+                            },
+                            listeners: {
+                                select: function(selector, user) {
+                                    panel.down('#addUserButton').enable();
+                                    panel.down('#delUserButton').enable();
+                                }
+                            }
+                        },
+                        {
+                            xtype: 'rallybutton',
+                            text: 'Add',
+                            itemId: 'addUserButton',
+                            disabled: true,
+                            width: 70,
+                            margin: 5,
+                            handler: function() {
+                                me.app.fireEvent('adduser', panel.down('#usersearchbox').getRecord());
+                            }
+                        },
+                        {
+                            xtype: 'rallybutton',
+                            text: 'Remove',
+                            itemId: 'delUserButton',
+                            width: 70,
+                            disabled: true,
+                            margin: '5 0 5 0',
+                            handler: function() {
+                                me.app.fireEvent('removeuser', panel.down('#usersearchbox').getRecord());
+                            }
                         }
-                    }
+                    ]
                 },
                 {
-                    xtype: 'rallybutton',
-                    text: 'Add',
-                    itemId: 'addUserButton',
-                    disabled: true,
-                    width: 80,
-                    margin: '0 5 5 5',
-                    handler: function() {
-                        me.app.fireEvent('adduser', panel.down('#usersearchbox').getRecord());
-                    }
-                },
-                {
-                    xtype: 'rallybutton',
-                    text: 'Remove',
-                    itemId: 'delUserButton',
-                    width: 80,
-                    disabled: true,
-                    margin: '0 5 5 5',
-                    handler: function() {
-                        me.app.fireEvent('removeuser', panel.down('#usersearchbox').getRecord());
-                    }
+                    xtype: 'textarea',
+                    fieldLabel: 'Additional User List',
+                    itemId: 'extrauserlist',
+                    labelAlign: 'top',
+                    width: 460,
+                    value: me._getCurrentUserList(),
+                    margin: '0 0 5 20',
+                    readOnly: true   
                 }
             ]
         });
-        
+
         panel.add( {
-            xtype: 'textarea',
-            fieldLabel: 'Extra User List',
-            itemId: 'extrauserlist',
-            labelAlign: 'top',
-            width: 460,
-            value: me._getCurrentUserList(),
-            margin: '0 20 5 20',
-            readOnly: true   
+            xtype: 'container',
+            layout: 'vbox',
+            width: '100%',
+            margin: '5 0 5 18',
+            items: [
+                {
+                    html: '<div class="configPanel definedfield"><strong>Priority Artefacts:</strong></div>'
+                },
+                {
+                    xtype: 'container',
+                    layout: 'hbox',
+                    items: [
+                        {
+                            margin: '5 0 5 20',
+                            fieldLabel: 'Choose',
+                            labelWidth: 40,
+                            width: 300,
+                            xtype: 'rallyartifactsearchcombobox',
+                            itemId: 'searchbox',
+                            storeConfig: {
+                                models: ['UserStory', 'Defect'],
+                                fetch: true
+                            },
+                            listeners: {
+                                select: function(selector, artefact) {
+                                    panel.down('#addAtftButton').enable();
+                                    panel.down('#delAtftButton').enable();
+                                }
+                            }
+                        },
+                        {
+                            xtype: 'rallybutton',
+                            text: 'Add',
+                            itemId: 'addAtftButton',
+                            disabled: true,
+                            width: 70,
+                            margin: 5,
+                            handler: function() {
+                                me.app.fireEvent('addartefact', panel.down('#searchbox').getRecord());
+                            }
+                        },
+                        {
+                            xtype: 'rallybutton',
+                            text: 'Remove',
+                            itemId: 'delAtftButton',
+                            width: 70,
+                            disabled: true,
+                            margin: '5 0 5 0',
+                            handler: function() {
+                                me.app.fireEvent('removeartefact', panel.down('#searchbox').getRecord());
+                            }
+                        }
+                    ]
+                },{
+                    xtype: 'rallyaddnew',
+                    margin: '5 0 5 20',
+                    recordTypes: ['User Story', 'Defect'],
+                    ignoredRequiredFields: ['Name', 'ScheduleState', 'Project', 'Owner'],
+                    listeners: {
+                        create: function(addnew, record) {
+                            Rally.ui.notify.Notifier.show(Ext.String.format('Added {0}: {1}',
+                                record.get('FormattedID'),
+                                record.get('Name')
+                            ));
+                            me.app.fireEvent('addartefact', record);
+                        }
+                    }
+                },{
+                    xtype: 'textarea',
+                    fieldLabel: 'Additional Story List',
+                    itemId: 'extrastorylist',
+                    labelAlign: 'top',
+                    width: 460,
+                    value: me._getCurrentStoryList(),
+                    margin: '5 0 5 20',
+                    readOnly: true   
+                }
+            ]
         });
         this.configPanel = panel;
         return panel;

@@ -11,7 +11,14 @@
 }
 .configPanel {
     opacity: 1;
-    background-color: palegoldenrod;
+    background-color: powderblue;
+}
+
+.configPanelTitle {
+    border-style: none none solid none;
+    border-color: black;
+    border-width: 1px;
+    font-size: 18px;    
 }
 
 .definedfield {
