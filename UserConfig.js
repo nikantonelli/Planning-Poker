@@ -311,6 +311,7 @@ Ext.define('Niks.Apps.PokerUserConfig', {
     _setVotes: function(results) {
         var me = this;
         if (!this.configPanel) { return;}
+        Ext.suspendLayouts();
         if (!results.length) { this._revealVotes = false;}
         var votesPanel = this.configPanel.down('#votespanel');
         votesPanel.removeAll();
@@ -399,6 +400,7 @@ Ext.define('Niks.Apps.PokerUserConfig', {
             });
 
         }
+        Ext.resumeLayouts(true);
 
     },
 

@@ -214,6 +214,7 @@ Ext.define('Niks.Apps.PokerGameConfig', {
 
     _createPanel: function() {
         var me = this;
+        Ext.suspendLayouts();
         var panel = Ext.create('Ext.panel.Panel', {
 //        var panel = Ext.create('Ext.container.Container', {
             floating: true,
@@ -574,6 +575,7 @@ Ext.define('Niks.Apps.PokerGameConfig', {
                 }
             ]
         });
+        Ext.resumeLayouts(true);
         this.configPanel = panel;
         return panel;
     },
