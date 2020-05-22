@@ -78,13 +78,11 @@ Ext.define('Niks.Apps.PlanningGame', {
 
         //These two can be triggered from the config panel.
         adduser: function(user) {
-            this._MC.addExtraUser(user);
-            this._GC.addExtraUser(user);
+            if (this._GC.addExtraUser(user)) { this._MC.addExtraUser(user);}
         },
 
         removeuser: function(user) {
-            this._MC.removeExtraUser(user);
-            this._GC.removeExtraUser(user);
+            if (this._GC.removeExtraUser(user)) { this._MC.removeExtraUser(user);}
         },
         
         configsaver: function() {
@@ -380,6 +378,8 @@ Ext.define('Niks.Apps.PlanningGame', {
                     _.each(results[0], function(member) {
                         console.log('Adding user: ',member);
                         me._MC.addUser(member);
+                        //Tell the gameconfig about them too, fo rthe adduser panel section
+                        me._GC.addUser(member);
                     });
                     //Add the extra users
                     _.each(results[1], function(member) {

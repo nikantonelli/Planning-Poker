@@ -96,32 +96,47 @@ Ext.define('Niks.Apps.PokerGameConfig', {
         if ( _.find( this.userIDs, {userOID: user.get(userIdField)})) {
             console.log("Adding existing member - ignoring!");
         } else {
-            this.userIDs.push(user[userIdField]);
+            this.userIDs.push({ 
+                userOID: user.get(userIdField),
+                displayName: user.get('_refObjectName')
+            });
         }
     },
 
     addExtraUser: function( user) {
+        var extraUser = _.find( this[mainConfigName].extraUsers, {userOID: user.get(userIdField)});
+        var teamUser = _.find( this.userIDs, {userOID: user.get(userIdField)});
 
-        if ( _.find( this[mainConfigName].extraUsers, {userOID: user.get(userIdField)})) {
-            console.log("Adding existing member - ignoring!");
-        } else {
-            this[mainConfigName].extraUsers.push({ 
-                userOID: user.get(userIdField),
-                displayName: user.get('_refObjectName')
-            });
-            this._updateCurrentUserList();
+        if ( extraUser ) {
+            console.log("Adding existing user - ignoring!");
+            return false;
         }
+
+        if (teamUser) {
+            console.log("Adding existing team member - ignoring!");
+            return false;
+        }
+
+        this[mainConfigName].extraUsers.push({ 
+            userOID: user.get(userIdField),
+            displayName: user.get('_refObjectName')
+        });
+        this._updateCurrentUserList();
+        return true;
 
     },
 
     removeExtraUser: function( user) {
+
         var storedUser = _.find( this[mainConfigName].extraUsers, {userOID: user.get(userIdField)});
-        if ( !storedUser) {
+        if ( storedUser === undefined) {
             console.log("Removing non-existent member - ignoring!");
-        } else {
-            this[mainConfigName].extraUsers = _.without(this[mainConfigName].extraUsers, storedUser);
-            this._updateCurrentUserList();
+            return false;
         }
+
+        this[mainConfigName].extraUsers = _.without(this[mainConfigName].extraUsers, storedUser);
+        this._updateCurrentUserList();
+        return true;
         
     },
 
