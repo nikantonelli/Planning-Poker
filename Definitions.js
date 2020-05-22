@@ -62,3 +62,6 @@ const valueSeries = [
             value: 40,
         }
     ];
+function timeStamp() {
+    return Ext.Date.format(new Date(), 'H:i:s.u' );
+}

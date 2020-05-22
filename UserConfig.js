@@ -56,7 +56,9 @@ Ext.define('Niks.Apps.PokerUserConfig', {
 
     restart: function(iAmMod) {
         this.stories = [];
+        Ext.suspendLayouts();
         this.destroyPanel();
+        Ext.resumeLayouts(true);
         var page = this.getPanel(iAmMod);
         this.cardSelected = null;
         if (iAmMod) {
@@ -69,9 +71,21 @@ Ext.define('Niks.Apps.PokerUserConfig', {
     loadStories: function( stories ) {
         var me = this;
 //        if (me.getPanel().down('#cardspace')) { me.getPanel().down('#cardspace').removeAll(false);}
-        _.each(stories, function(story) {
-            me.addStory(story);
+        var cs = this.getPanel().down('#cardspace');
+        Ext.suspendLayouts();
+
+        var cards = _.map(stories, function(story) { return me._createCard(story);});
+        _.each(cards, function(card) {
+            cs.add(card);
         });
+        Ext.resumeLayouts(true);
+        var dummy = _.map(stories, function(story, idx) {
+            cards[idx].setStory(story);
+        });
+        this.stories = this.stories.concat(cards);
+        // _.each(stories, function(story) {
+        //     me.addStory(story);
+        // });
     },
 
     addStory: function(story) {
@@ -84,6 +98,7 @@ Ext.define('Niks.Apps.PokerUserConfig', {
             return false;
         }
         var card = this._createCard(story);
+
         var cs = this.getPanel().down('#cardspace');
         cs.add(card);
         card.setStory(story);
