@@ -22,6 +22,10 @@ Ext.define('Niks.Apps.PokerGameConfig', {
 
     setModels: function(models) {
         this.models = models;
+        this[mainConfigName].artefactTypes = _.map(models, function(model) {
+            return model.typePath;
+        });
+        this.app.fireEvent(configSave);
     },
 
     /** We know of three config types right now: MainConfig, IterationConfig, UserConfig */
@@ -32,12 +36,13 @@ Ext.define('Niks.Apps.PokerGameConfig', {
         if (!this[mainConfigName].votingTime) {
             this[mainConfigName].votingTime = votingTime;
         }
+        this[mainConfigName].artefactTypes = this[mainConfigName].artefactTypes || [];
         
-        if ((!this[mainConfigName].artefactTypes) || !this[mainConfigName].artefactTypes.length){
-            this[mainConfigName].artefactTypes = ['UserStory', 'Defect'];
-        }
+        // if ((!this[mainConfigName].artefactTypes) || !this[mainConfigName].artefactTypes.length){
+        //     this[mainConfigName].artefactTypes = models;
+        // }
         this[mainConfigName].extraUsers = this[mainConfigName].extraUsers || [];
-        this[mainConfigName].extraStories = this[mainConfigName].extraStories || [];
+        this[mainConfigName].extraArtefacts = this[mainConfigName].extraArtefacts || [];
     },
 
     getNamedConfig: function(name) {
@@ -66,14 +71,14 @@ Ext.define('Niks.Apps.PokerGameConfig', {
     },
 
     addStory: function(story) {   //Passed in a user record
-        if ( _.find(  this[mainConfigName].extraStories, function(existing) {
+        if ( _.find(  this[mainConfigName].extraArtefacts, function(existing) {
                 return existing.storyOID === story.get(storyIdField);
             })
             ) {
                 console.log("Adding existing story - ignoring!");
             
         } else {
-            this[mainConfigName].extraStories.push({
+            this[mainConfigName].extraArtefacts.push({
                 storyOID: story.get(storyIdField),
                 storyFID: story.get('FormattedID'),
                 storyName: story.get('Name')
@@ -83,11 +88,11 @@ Ext.define('Niks.Apps.PokerGameConfig', {
     },
     
     delStory: function( story) {
-        var storedStory = _.find( this[mainConfigName].extraStories, {storyOID: story.get(storyIdField)});
+        var storedStory = _.find( this[mainConfigName].extraArtefacts, {storyOID: story.get(storyIdField)});
         if ( !storedStory) {
             console.log("Removing non-existent story - ignoring!");
         } else {
-            this[mainConfigName].extraStories = _.without(this[mainConfigName].extraStories, storedStory);
+            this[mainConfigName].extraArtefacts = _.without(this[mainConfigName].extraArtefacts, storedStory);
             this._updateCurrentStoryList();
         }
         
@@ -212,7 +217,7 @@ Ext.define('Niks.Apps.PokerGameConfig', {
 
     _getCurrentStoryList: function() {
         var text = '';
-        _.each (this.getConfigValue('extraStories'), function (story) {
+        _.each (this.getConfigValue('extraArtefacts'), function (story) {
             text += story.storyFID+", ";
         });
         return text;
@@ -303,6 +308,8 @@ Ext.define('Niks.Apps.PokerGameConfig', {
                     value: me[mainConfigName].allowIterationSelector,
                     labelWidth: 180,
                     margin: '0 0 5 20',
+                    hidden: me.app.getSetting('planningType') !== 't',
+                    hideMode: 'visibility',
                     listeners: {
                         change: function( tickbox, newV, oldV, opts) {
                             me[mainConfigName].allowIterationSelector = newV;
@@ -369,7 +376,7 @@ Ext.define('Niks.Apps.PokerGameConfig', {
                                 change: function(item, setting) {
                                     if (!setting) {
                                         me[mainConfigName].artefactTypes = _.without(me[mainConfigName].artefactTypes, 'UserStory');
-                                        if ( me.getPanel().down('#selectDefects').getValue() === false ){
+                                        if ( me[mainConfigName].artefactTypes.length === 0 ){
                                             me.getPanel().down('#selectDefects').setValue(true);
                                         }
                                     }
@@ -393,7 +400,7 @@ Ext.define('Niks.Apps.PokerGameConfig', {
                                 change: function(item, setting) {
                                     if (!setting) {
                                         me[mainConfigName].artefactTypes = _.without(me[mainConfigName].artefactTypes, 'Defect');
-                                        if ( me.getPanel().down('#selectStories').getValue() === false ){
+                                        if (  me[mainConfigName].artefactTypes.length === 0 ){
                                             me.getPanel().down('#selectStories').setValue(true);
                                         }
 
@@ -531,7 +538,7 @@ Ext.define('Niks.Apps.PokerGameConfig', {
                             xtype: 'rallyartifactsearchcombobox',
                             itemId: 'searchbox',
                             storeConfig: {
-                                models: ['UserStory', 'Defect'],
+                                models: me.models,
                                 fetch: true
                             },
                             listeners: {

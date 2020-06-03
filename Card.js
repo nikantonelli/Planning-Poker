@@ -46,8 +46,8 @@ Ext.define('Niks.Apps.PokerCard', {
             this.tf.addCls('definedfield');
             this.tf.removeCls('erroredfield');
         }
-        var ls = this.story.get(cardSizeField);
-        ls = (ls === null)?(ls === 0?'set to zero':'not set'):ls.toString();
+        var ls = this.story.get((this.story.get('_type').indexOf('portfolioitem') >= 0)?piSizeField:cardSizeField);
+        ls = ((ls !== null)&& (ls !== undefined))?(ls === 0?'set to zero':ls.toString()):'not set';
         this.tf.update(Ext.String.format('Current Size: {0} {1} {2}',
             ls, 
             this.vote?" - You chose: "+(this.vote.tshirt? this.vote.size: this.vote.value):'',

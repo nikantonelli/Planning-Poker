@@ -3,17 +3,49 @@ Ext.define('Niks.Apps.PlanningGame', {
     componentCls: 'app',
     itemId: 'pokerApp',
 
+    items: [
+        {
+            xtype: 'container',
+            itemId: 'header'    //Used to add portfoli type selector
+        }
+    ],
     //Only save the least amount of data in here. We only have 32768 chars to play with
     _GC: {},
 
     config: {
         configFieldName: "c_PlanningPokerConfig",
         configSplitter: '^',
-        showVotePanel: false    //Initial view for Moderator
+        showVotePanel: false,    //Initial view for Moderator
+        defaultSettings: {
+            plannningType: 't'
+        }
     },
 
     statics: {
         SAVE_FAIL_RETRIES: 5
+    },
+
+     getSettingsFields: function() {
+
+        return [
+            {
+                xtype: 'radiofield',
+                fieldLabel: '',
+                boxLabel  : 'Portfolio Planning',
+                name      : 'planningType',
+                inputValue: 'p',
+                id        : 'typePortfolio',
+                width: 150
+            }, {
+                xtype: 'radiofield',
+                fieldLabel: '',
+                name      : 'planningType',
+                boxLabel  : 'Team Planning',
+                inputValue: 't',
+                id        : 'typeTeam',
+                width: 150
+            }
+        ];
     },
 
     listeners: {
@@ -86,14 +118,14 @@ Ext.define('Niks.Apps.PlanningGame', {
         },
         
         configsaver: function() {
-            this._saveProjectConfig();
+            if (this._iAmModerator()){ this._saveProjectConfig();}
         },
 
         configchanged: function() {
             var me = this;
             me._UC.setConfig(me._GC.getNamedConfig(userConfigName)); 
             me._MC.setConfig(me._GC.getNamedConfig(userConfigName)); 
-            me._IC.setConfig(me._GC.getNamedConfig(iterConfigName));
+            if (me._IC) { me._IC.setConfig(me._GC.getNamedConfig(iterConfigName));}
             //GC itself updates directly from panel, so no need to fetch here
             this._saveProjectConfig().then({
                 success: function(result) {
@@ -122,7 +154,7 @@ Ext.define('Niks.Apps.PlanningGame', {
         },
         changeIteration: function() {
             if (this._iAmModerator()){
-                this._IC.showPanel();
+                if (this._IC) { this._IC.showPanel();}
             }
         },
         cardselected: function(story) {
@@ -246,13 +278,13 @@ Ext.define('Niks.Apps.PlanningGame', {
                 }
 
             ],
-            fetch: ['FormattedID','TargetDate', 'Description', 'Discussion', 'LatestDiscussionAgeInMinutes','LastUpdateDate', 'Name', 'State', 'ScheduleState', 'Owner', 'PlanEstimate'],
+            fetch: ['FormattedID','TargetDate', 'Description', 'Discussion', 'LatestDiscussionAgeInMinutes','LastUpdateDate', 'Name', 'State', 'ScheduleState', 'Owner', cardSizeField, piSizeField],
             filters: filters,
             listeners: {
                 load: function(store, records, success) {
                     if (success) {
                         storeLoadTime = new Date();
-                        Rally.ui.notify.Notifier.show({message: Ext.String.format("Loaded {0} stories", records.length)});
+                        Rally.ui.notify.Notifier.show({message: Ext.String.format("Loaded {0} items", records.length)});
                         deferred.resolve(store);
                     }else {
                         Rally.ui.notify.Notifier.showWarning({message: "No stories found in this iteration/project node"});
@@ -268,68 +300,72 @@ Ext.define('Niks.Apps.PlanningGame', {
     _kickOff: function() {
         var me = this;
         /** When we come here, everything should be in place to start a new game
+         * 
+         * We need to decide if we are Portfolio or team planning.
          * Now fetch the User Stories - with the option of only those not sized yet
          */
-        me._IC.getCurrentIteration().then({
-            success: function(iteration) {
-                var filters = [];
+        if (me._IC) {
+            me._IC.getCurrentIteration().then({
+                success: function(iteration) {
+                    var filters = [];
 
-                /** If the config has a Story Filter string, use that as well
-                 * 
-                 */
-                var storyFilter = me._GC.getConfigValue('storyFilter');
-                if (storyFilter) {
-                    filters.push(Rally.data.wsapi.Filter.fromQueryString(storyFilter));
-                }
-
-                if (me._GC.getConfigValue('allowIterationSelector')) {
-                    
-                //     filters.push( Rally.data.wsapi.Filter.or(
-                //     [
-                //         {
-                //             property: 'PlanEstimate',
-                //             operator: '=',
-                //             value: null
-                //         },
-                //         {
-                //             property: 'PlanEstimate',
-                //             operator: '=',
-                //             value: 0
-                //         }
-                //     ]));
-                // }
-                // else {
-                    filters.push({
-                        property: 'Iteration',
-                        value: iteration
-                    });
-                }
-                filters = Rally.data.wsapi.Filter.and(filters) || [];
-                var ffuncs = [];
-                ffuncs.push(me._getStoryStore(filters));
-                ffuncs.push(me._getExtraStories());
-                Deft.Promise.all(ffuncs).then ({
-                    success: function(results) {
-                        me._artefactStore = results[0];
-                        me._extraArtefacts = results[1];
-                    },
-                    failure: function(e) {
-                        console.log("Fatal failure to load stories. Clean out the project config and start again", e);
+                    /** If the config has a Story Filter string, use that as well
+                     * 
+                     */
+                    var storyFilter = me._GC.getConfigValue('storyFilter');
+                    if (storyFilter) {
+                        filters.push(Rally.data.wsapi.Filter.fromQueryString(storyFilter));
                     }
-                }).always( function() {
-                    me._setUpUserScreen();
-                });
-            },
-            failure: function(e) {
-                console.log("Didn't find a 'current' iteration", e);
+
+                    if (me._GC.getConfigValue('allowIterationSelector')) {
+                        filters.push({
+                            property: 'Iteration',
+                            value: iteration
+                        });
+                    }
+                    filters = Rally.data.wsapi.Filter.and(filters) || [];
+                    me._go(filters,me);
+                },
+                failure: function(e) {
+                    console.log("Didn't find a 'current' iteration", e);
+                }
+            });
+        } else {
+            /** We are portfolio planning here 
+             * 
+             */
+            var filters = [];
+            var storyFilter = me._GC.getConfigValue('storyFilter');
+            if (storyFilter) {
+                filters.push(Rally.data.wsapi.Filter.fromQueryString(storyFilter));
             }
-        });
+            filters = Rally.data.wsapi.Filter.and(filters) || [];
+            me._go(filters,me);
+        }
 
     },
 
-    _getExtraStories: function() {
+    _go: function(filters, me) {
+        me._GC.setModels(me.models);
+        var ffuncs = [];
+        ffuncs.push(me._getStoryStore(filters));
+        ffuncs.push(me._getExtraArtefacts());
+        Deft.Promise.all(ffuncs).then ({
+            success: function(results) {
+                me._artefactStore = results[0];
+                me._extraArtefacts = results[1];
+            },
+            failure: function(e) {
+                console.log("Fatal failure to load stories. Clean out the project config and start again", e);
+            }
+        }).always( function() {
+            me._setUpUserScreen();
+        });
+    },
+
+    _getExtraArtefacts: function() {
         var deferred = Ext.create('Deft.Deferred');
-        if (this._GC.getConfigValue('extraStories').length){
+        if (this._GC.getConfigValue('extraArtefacts').length){
             Ext.create('Rally.data.wsapi.artifact.Store',{
                 models: this._GC.getConfigValue('artefactTypes'),
                 context: this.getContext().getDataContext(),
@@ -340,7 +376,7 @@ Ext.define('Niks.Apps.PlanningGame', {
                     {
                         property: storyIdField,
                         operator: 'in',
-                        value: _.pluck(this._GC.getConfigValue('extraStories'), 'storyOID')
+                        value: _.pluck(this._GC.getConfigValue('extraArtefacts'), 'storyOID')
                     }
                 ],
                 listeners: {
@@ -360,18 +396,61 @@ Ext.define('Niks.Apps.PlanningGame', {
 
     _loadGameConfig: function() {
         var me = this;
-
         /** We need to load up the project specific config now.
          */
-         this._UC.useTShirtSizing( this._GC.getConfigValue('useTShirt'));
-
+        
+        this._UC.useTShirtSizing( this._GC.getConfigValue('useTShirt'));
         if (this._iAmModerator()) {
             this._MC.useTShirtSizing( this._GC.getConfigValue('useTShirt'));
-            /* Firstly, we need the team members
-            */
-            var funcs = [this._loadTeamMembers];
-            funcs.push(this._loadExtraUsers);
+        } 
+
+        /**
+         * Firstly, we need the portfolio types and then the team members
+         **/ 
             
+        if (me.getSetting('planningType') !== 't') {  
+            if ( me._iAmModerator()) {  
+                me.down('#header').add( {
+                    xtype: 'rallyportfolioitemtypecombobox',
+                    autoSelect: false,
+                    hidden: !me._iAmModerator(),
+                    hideMode: 'visibility',
+                    listeners: {
+                        select: function(combo,records) {
+                            if (records && records.length) {
+                                me._getModelsAndGo([combo.lastSelection[0].data.TypePath.toLowerCase()]);
+                            }
+                        },
+                        scope: me
+                    }
+                });
+            }
+            else {
+                me._getModelsAndGo(me._GC.getConfigValue('artefactTypes'));
+            }
+        } else {
+            me._getModelsAndGo(['UserStory', 'Defect', 'TestSet', 'TestCase', 'DefectSuite']);
+        }        
+    },
+
+    _getModelsAndGo: function(nameList) {
+        var me = this;
+        Rally.data.ModelFactory.getModels({
+            types: nameList,
+            context: me.getContext().getDataContext(),
+            success: function(models) {
+                me.models = models;
+                me._loadUsers();            
+            },
+            scope: me
+        });
+    },
+
+    _loadUsers: function() {
+        var me = this;
+        if (this._iAmModerator()) {   
+            
+            var funcs = [this._loadTeamMembers, this._loadExtraUsers];
             Deft.Chain.parallel(funcs, me).then({
                 success: function( results ) {
                     //Add the team members
@@ -478,6 +557,7 @@ Ext.define('Niks.Apps.PlanningGame', {
 
     launch: function () {
         var me = this;
+        me.models = [];
         me._GC = Ext.create('Niks.Apps.PokerGameConfig', {
             app: me,
             project: me.getContext().getProject()
@@ -495,20 +575,22 @@ Ext.define('Niks.Apps.PlanningGame', {
             project: me.getContext().getProject()
         });
 
-        me._IC = Ext.create('Niks.Apps.PokerIterationConfig', {
-            app: me,
-            project: me.getContext().getProject()
-        });
+        if (me.getSetting('planningType') === 't'){ 
 
-        Rally.data.ModelFactory.getModels({
-            types: ['UserStory', 'Defect'],
-            context: me.getContext().getDataContext(),
-            success: function(models) {
-                me._GC.setModels(models);
-                me._startGame();            
-            },
-            scope: me
-        });
+            me._IC = Ext.create('Niks.Apps.PokerIterationConfig', {
+                app: me,
+                project: me.getContext().getProject()
+            });
+            me._startGame();     
+
+        } else if (
+            (me.getSetting('planningType') === 'p') || (me.getSetting('planningType') === undefined) //Working externally in debug session
+//            me.getSetting('planningType') === 'p'
+        ){    
+            me._startGame();     
+        } else {
+            console.log('Oh bugger!', me.getSetting('planningType'));
+        }
 
     },
 
@@ -545,6 +627,7 @@ Ext.define('Niks.Apps.PlanningGame', {
                             Ext.create('Rally.ui.dialog.ConfirmDialog', {
                                 title: "New Config",
                                 message: "Are you moderator for this session?",
+                                confirmLabel: 'Yes',
                                 listeners: {
                                     confirm: function() {
                                         //Set user up as moderator
@@ -641,13 +724,15 @@ Ext.define('Niks.Apps.PlanningGame', {
     _getProjectConfig: function() {   /** parameter provided is Project Model, but not the actual data */
         var me = this;
         var deferred = Ext.create("Deft.Deferred");
+
         /** 
          * The current context should contain the Project record that we are currently at. 
          * We could change this to be a project picker if that becomes a useful feature.
          * Even if we update the Project field, then the environment keeps that handily local.
         */
+
         var project = this.getContext().getProject();
-        me.projectStore = Ext.create( 'Rally.data.wsapi.Store', {
+        this.projectStore = Ext.create( 'Rally.data.wsapi.Store', {
             model: 'Project',
             filters: [{
                 property: 'ObjectID',
@@ -660,14 +745,13 @@ Ext.define('Niks.Apps.PlanningGame', {
                     me._GC.initialiseConfig(records[0].get(this.configFieldName));
                     me._UC.setConfig(me._GC.getNamedConfig(userConfigName)); 
                     me._MC.setConfig(me._GC.getNamedConfig(userConfigName)); 
-                    me._IC.setConfig(me._GC.getNamedConfig(iterConfigName));
+                    if ( me._IC) { me._IC.setConfig(me._GC.getNamedConfig(iterConfigName));}
                     var currentConfig = me._GC.getNamedConfig(mainConfigName);
                     deferred.resolve(currentConfig);
                 },
                 scope: me
             }
         });
-
         return deferred.promise;
     },
 
@@ -676,7 +760,7 @@ Ext.define('Niks.Apps.PlanningGame', {
     /** Save the current config */
     _saveProjectConfig: function() {
         var me = this;
-        this._GC.updateNamedConfig(iterConfigName, this._IC.getConfig());
+        if ( this._IC) { this._GC.updateNamedConfig(iterConfigName, this._IC.getConfig());}
         this._GC.updateNamedConfig(userConfigName, this._MC.getConfig());
 
         var deferred = Ext.create("Deft.Deferred");

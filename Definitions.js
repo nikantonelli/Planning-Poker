@@ -14,6 +14,8 @@ const cardWidth = 400;
 const cardHeight = 300;
 const cardMargin = 10;
 const cardSizeField = 'PlanEstimate';
+const piSizeField = 'PreliminaryEstimateValue';
+
 const cardIdField = 'FormattedID';
 
 /** Configuration utils */
