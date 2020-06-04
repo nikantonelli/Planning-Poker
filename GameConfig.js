@@ -27,6 +27,15 @@ Ext.define('Niks.Apps.PokerGameConfig', {
         });
         console.log('GC setModels: ', this[mainConfigName].artefactTypes);
        this.app.fireEvent(configSave);
+       var sb = this.getPanel().down('#searchbox');
+       var sbContainer = sb.ownerCt;
+       sbContainer.remove(sb, true);
+       sbContainer.insert(0, this._getSearchBox());
+       console.log('Models: ',this.getModels());
+    },
+
+    getModels: function() {
+        return this.models;
     },
 
     /** We know of three config types right now: MainConfig, IterationConfig, UserConfig */
@@ -245,6 +254,27 @@ Ext.define('Niks.Apps.PokerGameConfig', {
     _updateCurrentStoryList: function() {
         this.getPanel().down('#extrastorylist').setValue(this._getCurrentStoryList());
         this.app.fireEvent(configChange);
+    },
+
+    _getSearchBox: function() {
+        return  {
+            margin: '5 0 5 20',
+            fieldLabel: 'Choose',
+            labelWidth: 40,
+            width: 300,
+            xtype: 'rallyartifactsearchcombobox',
+            itemId: 'searchbox',
+            storeConfig: {
+                models: this.getModels(),
+                fetch: true
+            },
+            listeners: {
+                select: function(selector, artefact) {
+                    panel.down('#addAtftButton').enable();
+                    panel.down('#delAtftButton').enable();
+                }
+            }
+        };
     },
 
     _createPanel: function() {
@@ -668,24 +698,7 @@ Ext.define('Niks.Apps.PokerGameConfig', {
                     xtype: 'container',
                     layout: 'hbox',
                     items: [
-                        {
-                            margin: '5 0 5 20',
-                            fieldLabel: 'Choose',
-                            labelWidth: 40,
-                            width: 300,
-                            xtype: 'rallyartifactsearchcombobox',
-                            itemId: 'searchbox',
-                            storeConfig: {
-                                models: me.models,
-                                fetch: true
-                            },
-                            listeners: {
-                                select: function(selector, artefact) {
-                                    panel.down('#addAtftButton').enable();
-                                    panel.down('#delAtftButton').enable();
-                                }
-                            }
-                        },
+                        me._getSearchBox(),
                         {
                             xtype: 'rallybutton',
                             text: 'Add',
