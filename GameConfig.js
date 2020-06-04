@@ -25,24 +25,32 @@ Ext.define('Niks.Apps.PokerGameConfig', {
         this[mainConfigName].artefactTypes = _.map(models, function(model) {
             return model.typePath;
         });
-        this.app.fireEvent(configSave);
+//        this.app.fireEvent(configSave);
     },
 
     /** We know of three config types right now: MainConfig, IterationConfig, UserConfig */
     initialiseConfig: function(fieldText) {
-        this[mainConfigName] = this._decodeConfig(mainConfigName, fieldText);
-        this[userConfigName] = this._decodeConfig(userConfigName, fieldText);
-        this[iterConfigName] = this._decodeConfig(iterConfigName, fieldText);
-        if (!this[mainConfigName].votingTime) {
-            this[mainConfigName].votingTime = votingTime;
-        }
-        this[mainConfigName].artefactTypes = this[mainConfigName].artefactTypes || [];
-        
-        // if ((!this[mainConfigName].artefactTypes) || !this[mainConfigName].artefactTypes.length){
-        //     this[mainConfigName].artefactTypes = models;
-        // }
-        this[mainConfigName].extraUsers = this[mainConfigName].extraUsers || [];
-        this[mainConfigName].extraArtefacts = this[mainConfigName].extraArtefacts || [];
+        this._preInitialiseDefaults();
+        Ext.apply(this[mainConfigName],this._decodeConfig(mainConfigName, fieldText));
+        Ext.apply(this[userConfigName], this._decodeConfig(userConfigName, fieldText));
+        Ext.apply(this[iterConfigName], this._decodeConfig(iterConfigName, fieldText));
+        this._postInitialiseDefaults();
+    },
+
+    _preInitialiseDefaults: function() {
+        if (!this[mainConfigName]) { this[mainConfigName] = {};}
+        if (!this[userConfigName]) { this[userConfigName] = {};}
+        if (!this[iterConfigName]) { this[iterConfigName] = {};}
+        this[mainConfigName].votingTime = votingTime;
+        this[mainConfigName].planningType =  defaultPlanningType;
+        this[mainConfigName].extraUsers = [];
+        this[mainConfigName].extraArtefacts = [];
+    },
+
+    _postInitialiseDefaults: function() {
+        this[mainConfigName].artefactTypes = (this[mainConfigName].artefactTypes && this[mainConfigName].artefactTypes.length) ? this[mainConfigName].artefactTypes :
+                ((this[mainConfigName].planningType === piPlanningType) ? ['portfolioitem/feature']  : //Guess at 'Feature' for now
+                                                                ['hierarchicalrequirement', 'defect', 'testcase', 'testset', 'defectsuite']);    
     },
 
     getNamedConfig: function(name) {
@@ -181,7 +189,8 @@ Ext.define('Niks.Apps.PokerGameConfig', {
                     else {
                         deferred.reject();
                     }
-                }
+                },
+                scope: me
             }
         });
         return deferred.promise;
@@ -189,6 +198,11 @@ Ext.define('Niks.Apps.PokerGameConfig', {
 
     getConfigValue: function(fieldName) {
         return this[mainConfigName][fieldName];
+    },
+
+    //Here be dragons....
+    setConfigValue: function(fieldName, value) {
+        this[mainConfigName][fieldName] = value;
     },
 
     _encodeMsg: function(msgType, msgText) {
@@ -308,7 +322,7 @@ Ext.define('Niks.Apps.PokerGameConfig', {
                     value: me[mainConfigName].allowIterationSelector,
                     labelWidth: 180,
                     margin: '0 0 5 20',
-                    hidden: me.app.getSetting('planningType') !== 't',
+                    hidden: me.getConfigValue('planningType') !== teamPlanningType,
                     hideMode: 'visibility',
                     listeners: {
                         change: function( tickbox, newV, oldV, opts) {
@@ -361,9 +375,57 @@ Ext.define('Niks.Apps.PokerGameConfig', {
                     text: 'Artefact Filtering:',
                     cls: 'configPanelTitle'
                 },
-                {
-                    xtype: 'container',
+                                {
+                    xtype: 'fieldcontainer',
+                    margin: '0 20 0 20',
+                    layout: 'hbox',
+                    defaults: {
+                        flex: 1
+                    },
+                    items: [
+                        {
+                            xtype: 'radiofield',
+                            fieldLabel: '',
+                            boxLabel  : 'Portfolio Planning',
+                            name      : 'planningType',
+                            inputValue: piPlanningType,
+                            checked: me.getConfigValue('planningType') === piPlanningType,
+                            id        : 'typePortfolio',
+                            width: 150,
+                            handler: function(box, newV, oldV) {
+                                if (newV === false) {
+                                    me.setConfigValue('planningType', Ext.getCmp('typeTeam').inputValue);
+                                    Ext.getCmp('teamTypesSelection').setVisible(true);
+                                } else {
+                                    me.setConfigValue('planningType', box.inputValue);
+                                    Ext.getCmp('teamTypesSelection').setVisible(false);
+                                }
+                                me.setConfigValue('artefactTypes',[]); 
+                                me._postInitialiseDefaults();   //Gives us all the artefact types, so renable the selectors next
+                                me.getPanel().down('#selectStories').setValue(true);
+                                me.getPanel().down('#selectDefects').setValue(true);
+                                me.getPanel().down('#selectTestCases').setValue(true);
+                                me.getPanel().down('#selectTestSets').setValue(true);
+                                me.getPanel().down('#selectDefectSuites').setValue(true);
+                                me.app.fireEvent(configChange);
+                            },
+                        }, {
+                            xtype: 'radiofield',
+                            fieldLabel: '',
+                            name      : 'planningType',
+                            boxLabel  : 'Team Planning',
+                            inputValue: teamPlanningType,
+                            checked: me.getConfigValue('planningType') === teamPlanningType,
+                            id        : 'typeTeam',
+                            width: 150,
+                        }
+                    ]
 
+                },{
+                    xtype: 'container',
+                    id: 'teamTypesSelection',
+                    hidden: me.getConfigValue('planningType') !== teamPlanningType,
+                    hideMode: 'visibility',
                     layout: 'hbox',
                     items: [
                         {
@@ -375,19 +437,19 @@ Ext.define('Niks.Apps.PokerGameConfig', {
                             listeners: {
                                 change: function(item, setting) {
                                     if (!setting) {
-                                        me[mainConfigName].artefactTypes = _.without(me[mainConfigName].artefactTypes, 'UserStory');
+                                        me[mainConfigName].artefactTypes = _.without(me[mainConfigName].artefactTypes, 'hierarchicalrequirement');
                                         if ( me[mainConfigName].artefactTypes.length === 0 ){
                                             me.getPanel().down('#selectDefects').setValue(true);
                                         }
                                     }
                                     else {
-                                        me[mainConfigName].artefactTypes = _.union(me[mainConfigName].artefactTypes, ['UserStory']);
+                                        me[mainConfigName].artefactTypes = _.union(me[mainConfigName].artefactTypes, ['hierarchicalrequirement']);
                                     }
                                     me.app.fireEvent(configChange);
 
                                 }
                             },
-                            value: _.indexOf(me[mainConfigName].artefactTypes, 'UserStory') >= 0
+                            value: _.indexOf(me[mainConfigName].artefactTypes, 'hierarchicalrequirement') >= 0
                         },
                         {
                             xtype: 'rallycheckboxfield',
@@ -399,19 +461,94 @@ Ext.define('Niks.Apps.PokerGameConfig', {
                             listeners: {
                                 change: function(item, setting) {
                                     if (!setting) {
-                                        me[mainConfigName].artefactTypes = _.without(me[mainConfigName].artefactTypes, 'Defect');
+                                        me[mainConfigName].artefactTypes = _.without(me[mainConfigName].artefactTypes, 'defect');
                                         if (  me[mainConfigName].artefactTypes.length === 0 ){
                                             me.getPanel().down('#selectStories').setValue(true);
                                         }
 
                                     }
                                     else {
-                                        me[mainConfigName].artefactTypes = _.union(me[mainConfigName].artefactTypes, ['Defect']);
+                                        me[mainConfigName].artefactTypes = _.union(me[mainConfigName].artefactTypes, ['defect']);
                                     }
                                     me.app.fireEvent(configChange);
                                 }
                             },
-                            value: _.indexOf(me[mainConfigName].artefactTypes, 'Defect') >= 0
+                            value: _.indexOf(me[mainConfigName].artefactTypes, 'defect') >= 0
+
+                        },
+                        {
+                            xtype: 'rallycheckboxfield',
+                            fieldLabel: 'TestCases',
+                            labelWidth: 80,
+                            labelAlign: 'right',
+                            itemId: 'selectTestCases',
+                            margin: 0,
+                            listeners: {
+                                change: function(item, setting) {
+                                    if (!setting) {
+                                        me[mainConfigName].artefactTypes = _.without(me[mainConfigName].artefactTypes, 'testcase');
+                                        if (  me[mainConfigName].artefactTypes.length === 0 ){
+                                            me.getPanel().down('#selectStories').setValue(true);
+                                        }
+
+                                    }
+                                    else {
+                                        me[mainConfigName].artefactTypes = _.union(me[mainConfigName].artefactTypes, ['testcase']);
+                                    }
+                                    me.app.fireEvent(configChange);
+                                }
+                            },
+                            value: _.indexOf(me[mainConfigName].artefactTypes, 'testcase') >= 0
+
+                        },
+                        {
+                            xtype: 'rallycheckboxfield',
+                            fieldLabel: 'Test Sets',
+                            labelWidth: 80,
+                            labelAlign: 'right',
+                            itemId: 'selectTestSets',
+                            margin: 0,
+                            listeners: {
+                                change: function(item, setting) {
+                                    if (!setting) {
+                                        me[mainConfigName].artefactTypes = _.without(me[mainConfigName].artefactTypes, 'testset');
+                                        if (  me[mainConfigName].artefactTypes.length === 0 ){
+                                            me.getPanel().down('#selectStories').setValue(true);
+                                        }
+
+                                    }
+                                    else {
+                                        me[mainConfigName].artefactTypes = _.union(me[mainConfigName].artefactTypes, ['testset']);
+                                    }
+                                    me.app.fireEvent(configChange);
+                                }
+                            },
+                            value: _.indexOf(me[mainConfigName].artefactTypes, 'testset') >= 0
+
+                        },
+                        {
+                            xtype: 'rallycheckboxfield',
+                            fieldLabel: 'Defect Suites',
+                            labelWidth: 80,
+                            labelAlign: 'right',
+                            itemId: 'selectDefectSuites',
+                            margin: 0,
+                            listeners: {
+                                change: function(item, setting) {
+                                    if (!setting) {
+                                        me[mainConfigName].artefactTypes = _.without(me[mainConfigName].artefactTypes, 'defectsuite');
+                                        if (  me[mainConfigName].artefactTypes.length === 0 ){
+                                            me.getPanel().down('#selectStories').setValue(true);
+                                        }
+
+                                    }
+                                    else {
+                                        me[mainConfigName].artefactTypes = _.union(me[mainConfigName].artefactTypes, ['defectsuite']);
+                                    }
+                                    me.app.fireEvent(configChange);
+                                }
+                            },
+                            value: _.indexOf(me[mainConfigName].artefactTypes, 'defectsuite') >= 0
 
                         }
                     ]

@@ -30,8 +30,12 @@ const userIdField = "ObjectID";
 const storyIdField = "ObjectID";
 const storyFetchLimit = 50;
 
-/* Poker 'post' types */
+/** Miscellaneous defs  */
+const defaultPlanningType = 't';
+const teamPlanningType = 't';
+const piPlanningType = 'p';
 
+/* Poker 'post' types */
 const pokerMsg = 
 { 
     votePosted: 'POKER_VOTE_POSTED',

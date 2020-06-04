@@ -4,8 +4,8 @@
     "server": "https://rally1.rallydev.com",
     "sdk": "2.1",
     "javascript": [
-        "App.js",
         "Definitions.js",
+        "App.js",
         "Panel.js",
         "GameConfig.js",
         "Card.js",

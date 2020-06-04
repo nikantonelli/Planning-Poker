@@ -16,39 +16,14 @@ Ext.define('Niks.Apps.PlanningGame', {
         configFieldName: "c_PlanningPokerConfig",
         configSplitter: '^',
         showVotePanel: false,    //Initial view for Moderator
-        defaultSettings: {
-            plannningType: 't'
-        }
     },
 
     statics: {
         SAVE_FAIL_RETRIES: 5
     },
 
-     getSettingsFields: function() {
-
-        return [
-            {
-                xtype: 'radiofield',
-                fieldLabel: '',
-                boxLabel  : 'Portfolio Planning',
-                name      : 'planningType',
-                inputValue: 'p',
-                id        : 'typePortfolio',
-                width: 150
-            }, {
-                xtype: 'radiofield',
-                fieldLabel: '',
-                name      : 'planningType',
-                boxLabel  : 'Team Planning',
-                inputValue: 't',
-                id        : 'typeTeam',
-                width: 150
-            }
-        ];
-    },
-
     listeners: {
+
         removeGame: function() {
             var filters = [];
             //Get all the message types from array
@@ -220,8 +195,15 @@ Ext.define('Niks.Apps.PlanningGame', {
         /** Clear out existing data and settings 
          * We will need to refetch the config from the project 
          * */
+    
         this._extraArtefacts = [];
-        this._kickOff();
+        if (this._iAmModerator()){
+            //Reset the artefactTypes to portfolioitemtypecombobox
+            if (this._GC.getConfigValue('planningType') === piPlanningType){
+                this._GC.setConfigValue('artefactTypes', [this.down('#piTypeChooser').lastSelection[0].data.TypePath.toLowerCase()]);
+            }
+        }
+        this._loadGameConfig();
     },
 
     _iAmModerator: function() {
@@ -287,7 +269,12 @@ Ext.define('Niks.Apps.PlanningGame', {
                         Rally.ui.notify.Notifier.show({message: Ext.String.format("Loaded {0} items", records.length)});
                         deferred.resolve(store);
                     }else {
-                        Rally.ui.notify.Notifier.showWarning({message: "No stories found in this iteration/project node"});
+                        if ( me._GC.getConfigValue('planningType') === teamPlanningType) {
+                            Rally.ui.notify.Notifier.showWarning({message: "No team artefacts found in this iteration/project node"});
+                        }
+                        else {
+                            Rally.ui.notify.Notifier.showWarning({message: "No portfolio items found in this project node"});
+                        }
                         deferred.reject(null);
                     }
                 },
@@ -405,34 +392,63 @@ Ext.define('Niks.Apps.PlanningGame', {
         } 
 
         /**
-         * Firstly, we need the portfolio types and then the team members
+         * Firstly, we need the artefact types
          **/ 
-            
-        if (me.getSetting('planningType') !== 't') {  
-            if ( me._iAmModerator()) {  
+        if ((me._GC.getConfigValue('planningType') === teamPlanningType) && me._iAmModerator()){     //If we are moderator, we need the Iteration in team planningmode
+            if (!me._IC) {  //May still be here on a restart, but we don't need to set it up unless we change project
+                me._IC = Ext.create('Niks.Apps.PokerIterationConfig', {
+                        app: me,
+                    project: me.getContext().getProject()
+                });
+            }
+        }
+
+        //If team mode, get the required artefact types if set, or the default list if not. If we are moderator, we need
+        //the combobox to choose the portfolio type at any time
+
+        if (me._iAmModerator()) {
+            //We are moderator, so set up combo but hide it in temamode (for when we choose to flick back)
+            if (me.down('#piTypeChooser')) {
+                if (me._GC.getConfigValue('planningType') !== teamPlanningType) {
+                    me.down('#piTypeChooser').setVisible(true);
+                    me._getModelsAndGo([me.down('#piTypeChooser').lastSelection[0].data.TypePath.toLowerCase()]);
+                } else {
+                    me.down('#piTypeChooser').setVisible(false);
+                    me._getModelsAndGo(me._GC.getConfigValue('artefactTypes'));
+                }
+            } else {
                 me.down('#header').add( {
                     xtype: 'rallyportfolioitemtypecombobox',
+                    itemId: 'piTypeChooser',
                     autoSelect: false,
-                    hidden: !me._iAmModerator(),
-                    hideMode: 'visibility',
+                    hidden: (me._GC.getConfigValue('planningType') === teamPlanningType),
                     listeners: {
                         select: function(combo,records) {
                             if (records && records.length) {
-                                me._getModelsAndGo([combo.lastSelection[0].data.TypePath.toLowerCase()]);
+                                if (me._GC.getConfigValue('planningType') !== teamPlanningType) {
+                                    me._getModelsAndGo([combo.lastSelection[0].data.TypePath.toLowerCase()]);
+                                } else {
+                                     me._getModelsAndGo(me._GC.getConfigValue('artefactTypes'));
+                                }
                             }
                         },
                         scope: me
                     }
-                });
-            }
-            else {
-                me._getModelsAndGo(me._GC.getConfigValue('artefactTypes'));
-            }
+                });  
+            }          
         } else {
-            me._getModelsAndGo(['UserStory', 'Defect', 'TestSet', 'TestCase', 'DefectSuite']);
-        }        
+
+
+            //Possible error condition in following statement if you are not moderator and the moderator hasn't set the portfolioitem type yet and your
+            //workspace doesn't use 'Feature' - see GameConfig.js in function initialiseConfig
+             me._getModelsAndGo(me._GC.getConfigValue('artefactTypes'));
+             
+        } 
+        
+           
     },
 
+    /** Now get the real models from Rally */
     _getModelsAndGo: function(nameList) {
         var me = this;
         Rally.data.ModelFactory.getModels({
@@ -446,6 +462,7 @@ Ext.define('Niks.Apps.PlanningGame', {
         });
     },
 
+    /** Get the users if moderator, else just start*/
     _loadUsers: function() {
         var me = this;
         if (this._iAmModerator()) {   
@@ -556,6 +573,7 @@ Ext.define('Niks.Apps.PlanningGame', {
     },
 
     launch: function () {
+        this.currentMode = this.getSetting('planningType');
         var me = this;
         me.models = [];
         me._GC = Ext.create('Niks.Apps.PokerGameConfig', {
@@ -575,22 +593,7 @@ Ext.define('Niks.Apps.PlanningGame', {
             project: me.getContext().getProject()
         });
 
-        if (me.getSetting('planningType') === 't'){ 
-
-            me._IC = Ext.create('Niks.Apps.PokerIterationConfig', {
-                app: me,
-                project: me.getContext().getProject()
-            });
-            me._startGame();     
-
-        } else if (
-            (me.getSetting('planningType') === 'p') || (me.getSetting('planningType') === undefined) //Working externally in debug session
-//            me.getSetting('planningType') === 'p'
-        ){    
-            me._startGame();     
-        } else {
-            console.log('Oh bugger!', me.getSetting('planningType'));
-        }
+        me._startGame();
 
     },
 
@@ -760,6 +763,9 @@ Ext.define('Niks.Apps.PlanningGame', {
     /** Save the current config */
     _saveProjectConfig: function() {
         var me = this;
+        console.log(this._GC.getGameConfig());
+
+        //We use the GC to hold all the config so that we can read it all in one go.
         if ( this._IC) { this._GC.updateNamedConfig(iterConfigName, this._IC.getConfig());}
         this._GC.updateNamedConfig(userConfigName, this._MC.getConfig());
 
@@ -780,10 +786,6 @@ Ext.define('Niks.Apps.PlanningGame', {
             scope: me
         });
         return deferred.promise;
-    },
-
-    _checkConfigChange: function(newConfig) {
-        console.log(newConfig);
     },
 
     //Create and hide the config page
