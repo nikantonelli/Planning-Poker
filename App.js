@@ -93,6 +93,7 @@ Ext.define('Niks.Apps.PlanningGame', {
         },
         
         configsaver: function() {
+
             if (this._iAmModerator()){ this._saveProjectConfig();}
         },
 
@@ -411,9 +412,11 @@ Ext.define('Niks.Apps.PlanningGame', {
             if (me.down('#piTypeChooser')) {
                 if (me._GC.getConfigValue('planningType') !== teamPlanningType) {
                     me.down('#piTypeChooser').setVisible(true);
+                    console.log('Restart portfolio types set to: ',me.down('#piTypeChooser').lastSelection[0].data.TypePath.toLowerCase());
                     me._getModelsAndGo([me.down('#piTypeChooser').lastSelection[0].data.TypePath.toLowerCase()]);
                 } else {
                     me.down('#piTypeChooser').setVisible(false);
+                    console.log('Restart team types set to:',me._GC.getConfigValue('artefactTypes'));
                     me._getModelsAndGo(me._GC.getConfigValue('artefactTypes'));
                 }
             } else {
@@ -426,9 +429,11 @@ Ext.define('Niks.Apps.PlanningGame', {
                         select: function(combo,records) {
                             if (records && records.length) {
                                 if (me._GC.getConfigValue('planningType') !== teamPlanningType) {
+                                    console.log('New portfolio types set to: ',combo.lastSelection[0].data.TypePath.toLowerCase());
                                     me._getModelsAndGo([combo.lastSelection[0].data.TypePath.toLowerCase()]);
                                 } else {
-                                     me._getModelsAndGo(me._GC.getConfigValue('artefactTypes'));
+                                    console.log('New team types set to: ',me._GC.getConfigValue('artefactTypes'));
+                                    me._getModelsAndGo(me._GC.getConfigValue('artefactTypes'));
                                 }
                             }
                         },
@@ -441,11 +446,10 @@ Ext.define('Niks.Apps.PlanningGame', {
 
             //Possible error condition in following statement if you are not moderator and the moderator hasn't set the portfolioitem type yet and your
             //workspace doesn't use 'Feature' - see GameConfig.js in function initialiseConfig
-             me._getModelsAndGo(me._GC.getConfigValue('artefactTypes'));
+            console.log('Non-moderator types set to: ',me._GC.getConfigValue('artefactTypes'));
+            me._getModelsAndGo(me._GC.getConfigValue('artefactTypes'));
              
-        } 
-        
-           
+        }  
     },
 
     /** Now get the real models from Rally */
@@ -763,7 +767,7 @@ Ext.define('Niks.Apps.PlanningGame', {
     /** Save the current config */
     _saveProjectConfig: function() {
         var me = this;
-        console.log(this._GC.getGameConfig());
+        console.log('Saving Config: ',this._GC.getGameConfig());
 
         //We use the GC to hold all the config so that we can read it all in one go.
         if ( this._IC) { this._GC.updateNamedConfig(iterConfigName, this._IC.getConfig());}

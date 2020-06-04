@@ -175,6 +175,7 @@ function timeStamp() {
         },
         
         configsaver: function() {
+
             if (this._iAmModerator()){ this._saveProjectConfig();}
         },
 
@@ -493,9 +494,11 @@ function timeStamp() {
             if (me.down('#piTypeChooser')) {
                 if (me._GC.getConfigValue('planningType') !== teamPlanningType) {
                     me.down('#piTypeChooser').setVisible(true);
+                    console.log('Restart portfolio types set to: ',me.down('#piTypeChooser').lastSelection[0].data.TypePath.toLowerCase());
                     me._getModelsAndGo([me.down('#piTypeChooser').lastSelection[0].data.TypePath.toLowerCase()]);
                 } else {
                     me.down('#piTypeChooser').setVisible(false);
+                    console.log('Restart team types set to:',me._GC.getConfigValue('artefactTypes'));
                     me._getModelsAndGo(me._GC.getConfigValue('artefactTypes'));
                 }
             } else {
@@ -508,9 +511,11 @@ function timeStamp() {
                         select: function(combo,records) {
                             if (records && records.length) {
                                 if (me._GC.getConfigValue('planningType') !== teamPlanningType) {
+                                    console.log('New portfolio types set to: ',combo.lastSelection[0].data.TypePath.toLowerCase());
                                     me._getModelsAndGo([combo.lastSelection[0].data.TypePath.toLowerCase()]);
                                 } else {
-                                     me._getModelsAndGo(me._GC.getConfigValue('artefactTypes'));
+                                    console.log('New team types set to: ',me._GC.getConfigValue('artefactTypes'));
+                                    me._getModelsAndGo(me._GC.getConfigValue('artefactTypes'));
                                 }
                             }
                         },
@@ -523,11 +528,10 @@ function timeStamp() {
 
             //Possible error condition in following statement if you are not moderator and the moderator hasn't set the portfolioitem type yet and your
             //workspace doesn't use 'Feature' - see GameConfig.js in function initialiseConfig
-             me._getModelsAndGo(me._GC.getConfigValue('artefactTypes'));
+            console.log('Non-moderator types set to: ',me._GC.getConfigValue('artefactTypes'));
+            me._getModelsAndGo(me._GC.getConfigValue('artefactTypes'));
              
-        } 
-        
-           
+        }  
     },
 
     /** Now get the real models from Rally */
@@ -845,7 +849,7 @@ function timeStamp() {
     /** Save the current config */
     _saveProjectConfig: function() {
         var me = this;
-        console.log(this._GC.getGameConfig());
+        console.log('Saving Config: ',this._GC.getGameConfig());
 
         //We use the GC to hold all the config so that we can read it all in one go.
         if ( this._IC) { this._GC.updateNamedConfig(iterConfigName, this._IC.getConfig());}
@@ -956,7 +960,8 @@ Ext.define('Niks.Apps.PokerGameConfig', {
         this[mainConfigName].artefactTypes = _.map(models, function(model) {
             return model.typePath;
         });
-//        this.app.fireEvent(configSave);
+        console.log('GC setModels: ', this[mainConfigName].artefactTypes);
+       this.app.fireEvent(configSave);
     },
 
     /** We know of three config types right now: MainConfig, IterationConfig, UserConfig */
@@ -969,9 +974,9 @@ Ext.define('Niks.Apps.PokerGameConfig', {
     },
 
     _preInitialiseDefaults: function() {
-        if (!this[mainConfigName]) { this[mainConfigName] = {};}
-        if (!this[userConfigName]) { this[userConfigName] = {};}
-        if (!this[iterConfigName]) { this[iterConfigName] = {};}
+        this[mainConfigName] = {};
+        this[userConfigName] = {};
+        this[iterConfigName] = {};
         this[mainConfigName].votingTime = votingTime;
         this[mainConfigName].planningType =  defaultPlanningType;
         this[mainConfigName].extraUsers = [];

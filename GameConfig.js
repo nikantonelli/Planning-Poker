@@ -25,7 +25,8 @@ Ext.define('Niks.Apps.PokerGameConfig', {
         this[mainConfigName].artefactTypes = _.map(models, function(model) {
             return model.typePath;
         });
-//        this.app.fireEvent(configSave);
+        console.log('GC setModels: ', this[mainConfigName].artefactTypes);
+       this.app.fireEvent(configSave);
     },
 
     /** We know of three config types right now: MainConfig, IterationConfig, UserConfig */
@@ -38,9 +39,9 @@ Ext.define('Niks.Apps.PokerGameConfig', {
     },
 
     _preInitialiseDefaults: function() {
-        if (!this[mainConfigName]) { this[mainConfigName] = {};}
-        if (!this[userConfigName]) { this[userConfigName] = {};}
-        if (!this[iterConfigName]) { this[iterConfigName] = {};}
+        this[mainConfigName] = {};
+        this[userConfigName] = {};
+        this[iterConfigName] = {};
         this[mainConfigName].votingTime = votingTime;
         this[mainConfigName].planningType =  defaultPlanningType;
         this[mainConfigName].extraUsers = [];
