@@ -48,15 +48,21 @@ The team members can also make use of the link to have a look at more details. I
 There are probably some bugs in here, but it generally works!
 
 ## Moderator Screen
+
 ![alt text](https://github.com/nikantonelli/Planning-Poker/blob/master/Images/ModeratorScreen.png)
 
 ## Team Member Screen
+
 ![alt text](https://github.com/nikantonelli/Planning-Poker/blob/master/Images/TeamMemberScreen.png)
 
 ## Game config panel
+
+The app can work in two modes: Portfolio and Team. Use the selector checkboxes for one or the other. Iteration selection is disabled in Portfolio mode. In portfolio mode, the moderator can choose the type of interest from the combobox that appears at the top of the main page. If the moderator changes this, the config is stored but team members have to reload their page to get the new config. Note: it is not ever going to be possible to actively ping users with changes in this app - so don't ask for it :-)
+
 ![alt text](https://github.com/nikantonelli/Planning-Poker/blob/master/Images/GameConfig.png)
 
 ## Iteration Selection
+
 ![alt text](https://github.com/nikantonelli/Planning-Poker/blob/master/Images/IterationConfig.png)
 
 ## License
