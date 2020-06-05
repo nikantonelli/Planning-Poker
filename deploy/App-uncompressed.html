@@ -1362,9 +1362,11 @@ Ext.define('Niks.Apps.PokerGameConfig', {
                                 if (newV === false) {
                                     me.setConfigValue('planningType', Ext.getCmp('typeTeam').inputValue);
                                     Ext.getCmp('teamTypesSelection').setVisible(true);
+                                    Ext.getCmp('allowIterationSelector').setVisible(true);
                                 } else {
                                     me.setConfigValue('planningType', box.inputValue);
                                     Ext.getCmp('teamTypesSelection').setVisible(false);
+                                    Ext.getCmp('allowIterationSelector').setVisible(false);
                                 }
                                 me.setConfigValue('artefactTypes',[]); 
                                 me._postInitialiseDefaults();   //Gives us all the artefact types, so renable the selectors next
