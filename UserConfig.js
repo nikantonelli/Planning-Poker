@@ -389,10 +389,14 @@ Ext.define('Niks.Apps.PokerUserConfig', {
             });
             votesTotal = votesTotal.value;
             
-            var nearest =  _.reduce(valueSeries, function(result, value, key) {
+            //Make sure users don't muck up the sequence by mistake.
+            var sortedSeries = _.sortBy(valueSeries, function(item) {
+                return item.value;
+            });
+            var nearest =  _.reduce(sortedSeries, function(result, value, key) {
                 var oldOne = Math.abs(result.value - (votesTotal/(votesCount?votesCount:1)));
                 var newOne = Math.abs(value.value - (votesTotal/(votesCount?votesCount:1)));
-                return (newOne < oldOne)? value:result;
+                return (newOne <= oldOne)? value:result;
             });
 
             votesPanel.add ( {
