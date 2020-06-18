@@ -571,7 +571,7 @@ function timeStamp() {
                     });
                 },
                 failure: function ( error) {
-                    Rally.ui.nofity.Notifier.showError({message: error});
+                    Rally.ui.notify.Notifier.showError({message: error});
                 }
             }).always( function(results) {   
                 me._kickOff();
@@ -653,7 +653,7 @@ function timeStamp() {
         }
         else {
             Rally.ui.notify.Notifier.showWarning({ message: "Team members not configured"});
-            deferred.reject(null,'No Team Members');
+            deferred.resolve([]);
         }
         return deferred.promise;
     },

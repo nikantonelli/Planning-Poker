@@ -571,7 +571,7 @@ Ext.define('Niks.Apps.PlanningGame', {
         }
         else {
             Rally.ui.notify.Notifier.showWarning({ message: "Team members not configured"});
-            deferred.reject(null,'No Team Members');
+            deferred.resolve([]);
         }
         return deferred.promise;
     },
