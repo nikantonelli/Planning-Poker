@@ -1978,7 +1978,7 @@ Ext.define('Niks.Apps.PokerUserConfig', {
                     listeners: {
                         confirm: function() {
                             me._stopTimer();
-                            me._configureTimer(actions);
+                            me._configureTimer();
                         },
                         scope: me
                     }
@@ -1986,7 +1986,7 @@ Ext.define('Niks.Apps.PokerUserConfig', {
             }
             else {
 
-                this._configureTimer(actions);
+                this._configureTimer();
                 return true;
             }
             return false;
@@ -2073,16 +2073,22 @@ Ext.define('Niks.Apps.PokerUserConfig', {
         this._timerRunning = 0;
     },
 
-    _configureTimer: function(actions) {
-        if ((this[mainConfigName] === undefined) || (this[mainConfigName].votingTime === "00:00")) {
+    _configureTimer: function(savedValue) {
+        if ((this.app._GC[mainConfigName] === undefined) || (this.app._GC[mainConfigName].votingTime === "00:00")) {
             return;
         }
-        var bits = this[mainConfigName].votingTime.split(':');   //Shortcut as it should always be 00:00 format
+        if (savedValue === undefined) {
+        var bits = this.app._GC[mainConfigName].votingTime.split(':');   //Shortcut as it should always be 00:00 format
         this._timerRunning = (bits[0] * 60) + bits[1];
-        this.configPanel.down('#countdowntimer').setValue(this[mainConfigName].votingTime);
+        this.configPanel.down('#countdowntimer').setValue(this.app._GC[mainConfigName].votingTime);
+        } else {
+            this._timerRunning = savedValue;
+            this.configPanel.down('#countdowntimer').setValue(Math.floor(savedValue/60) + ":" + savedValue % 60);
+        }
         this.configPanel.down('#countdowntimer').getEl().removeCls('timerfinished');
         this.configPanel.down('#countdowntimer').getEl().removeCls('textBlink');
         this.configPanel.down('#countdowntimer').getEl().addCls('timerreset');
+
 
 
     },
@@ -2399,9 +2405,13 @@ Ext.define('Niks.Apps.PokerUserConfig', {
                                         if ( this.cardSelected === null ){
                                             Rally.ui.notify.Notifier.showWarning({message: 'No story selected'});
                                         }else {
+                                            if (me._timerSave >0 ) {
+                                                me._configureTimer(me._timerSave);
+                                            }
                                             me._countdownTimer(me);
                                         }
-                                    }
+                                    },
+                                    scope: me
                                 },
                                 {
                                     xtype: 'rallybutton',
@@ -2409,8 +2419,10 @@ Ext.define('Niks.Apps.PokerUserConfig', {
                                     margin: 10,
                                     width: 100,
                                     handler: function() {
-                                        me._timerRunning = 0;
-                                    }
+                                        me._timerSave = me._timerRunning;
+                                        me._stopTimer();
+                                    },
+                                    scope: me
                                 },
                                 {
                                     xtype: 'rallybutton',
@@ -2419,7 +2431,8 @@ Ext.define('Niks.Apps.PokerUserConfig', {
                                     margin:10,
                                     handler: function() {
                                         me._configureTimer();
-                                    }
+                                    },
+                                    scope: me
                                 },
 
                             ]
