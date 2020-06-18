@@ -489,7 +489,7 @@ Ext.define('Niks.Apps.PlanningGame', {
                     });
                 },
                 failure: function ( error) {
-                    Rally.ui.nofity.Notifier.showError({message: error});
+                    Rally.ui.notify.Notifier.showError({message: error});
                 }
             }).always( function(results) {   
                 me._kickOff();
